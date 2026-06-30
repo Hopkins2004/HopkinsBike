@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity summary</title>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            color: #333;
+        }
+
+        #map-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            align-items: flex-start;
+        }
+
+        #map {
+            height: 420px;
+            width: 60%;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+        }
+
+        #results-panel {
+            flex: 1;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            padding: 16px;
+            overflow-y: auto;
+            max-height: 420px;
+        }
+
+        #results-panel h3 {
+            margin: 0 0 12px 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+
+        .segments-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .segments-table th {
+            text-align: left;
+            padding: 8px 10px;
+            background: #f0f4fa;
+            color: #555;
+            font-weight: 600;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .segments-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        .segments-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .segments-table tbody tr {
+            cursor: pointer;
+        }
+
+        .segments-table tbody tr:hover td {
+            background: #f9fbff;
+        }
+
+        .btn-info {
+            background: #478ac9;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-info:hover {
+            background: #2f6fa8;
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .btn-delete img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .no-segments {
+            color: #999;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 24px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+            z-index: 1000;
+            min-width: 320px;
+        }
+
+        .modal h3 {
+            margin: 0 0 16px 0;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .modal-detail-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .modal-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.85rem;
+            min-width: 80px;
+        }
+
+        .modal-value {
+            color: #333;
+            font-size: 0.85rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 14px;
+        }
+
+        .btn-close {
+            background: #f0f0f0;
+            color: #555;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-close:hover {
+            background: #e0e0e0;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 999;
+        }
+
+        #chart_div {
+            margin: 20px auto;
+            height: 300px;
+            width: 92%;
+        }
+
+        #new-segment-bar {
+            padding: 0 20px 16px 20px;
+        }
+
+        .btn-new-segment {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 9px 22px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-new-segment:hover {
+            background: #218838;
+        }
+
+        /* Minimal right-justified nav (TASK-005) */
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-family: 'Open Sans', sans-serif;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .top-nav a:hover {
+            color: #478ac9;
+            border-bottom-color: #478ac9;
+        }
+    </style>
+    <meta name="keywords" content="Cycling Club, ​Road Cycling Events, Our Services, The Largest Cycling Club, ​Mission, Vision, and Values, ​Get our free newsletter+ bonus content">
+    <link rel="stylesheet" href="{{ url_for('static', filename='nicepage.css')}}" media="screen">
+    <link rel="stylesheet" href="{{ url_for('static', filename='Home.css')}}" media="screen">
+    <script class="u-script" type="text/javascript" src="{{ url_for('static', filename='jquery-1.9.1.min.js')}}" defer=""></script>
+    <script class="u-script" type="text/javascript" src="{{ url_for('static', filename='nicepage.js')}}" defer=""></script>
+    <meta name="generator" content="Nicepage 5.21.10, nicepage.com">
+    <meta name="referrer" content="origin">
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,300i,400,400i,700,700i|Open+Sans:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i">
+    <link id="u-page-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald:200,300,400,500,600,700|Roboto+Condensed:300,300i,400,400i,700,700i">
+    <script type="application/ld+json">{
+        "@context": "http://schema.org",
+        "@type": "Organization",
+        "name": "",
+        "url": "/"
+    }</script>
+    <meta name="theme-color" content="#478ac9">
+    <meta property="og:title" content="Home">
+    <meta property="og:type" content="website">
+    <link rel="canonical" href="/">
+    <meta data-intl-tel-input-cdn-path="intlTelInput/">
+</head>
+<body data-path-to-root="./" data-include-products="false" class="u-body u-xl-mode" data-lang="en">
+  <nav class="top-nav">
+    {%for page in page_permissions[role()]%}
+    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+    {%endfor%}
+  </nav>
+
+  <div id="map-container">
+    <div id="map"></div>
+    <div id="results-panel">
+      <h3>Saved Segments</h3>
+      {% if results %}
+      <table class="segments-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>CdA</th>
+            <th>Comments</th>
+          </tr>
+        </thead>
+        <tbody>
+          {%for row in results%}
+          {%set vseg_url = '/view_segment?q=' + encode_q(0, 0, parameters[0]|string + ',' + row[0]|string)%}
+          <tr onclick="window.location.href='{{vseg_url}}'">
+            <td>{{row[1]}}</td>
+            <td>{{row[2]}}</td>
+            <td>{{row[3]}}</td>
+          </tr>
+          {%endfor%}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="no-segments">No segments saved yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div id="new-segment-bar">
+    <button class="btn-new-segment" onclick="new_segment()">+ New Segment</button>
+  </div>
+
+  <div id="chart_div"></div>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0"></script>
+
+  <script>
+    let map;
+    const marker = new google.maps.Marker({
+          position: { lat: 43, lng: 7 },
+          map: map,
+          title: 'Point',
+      });
+    let markers = [marker];
+    var data = {{data}}
+    var flightPlanCoordinates = []
+    data.forEach(function(pair) {
+        var latLng = {lat : pair[0], lng : pair[1]};
+        flightPlanCoordinates.push(latLng)
+      });
+
+    var zoom = 8;
+    var lat = 45;
+    var lng = 0;
+    function center(i,j){
+        var data = {{data}};
+        const appear = data.slice(i,j)
+        var lat_min= 100;
+        var lng_min = 100;
+        var lat_max = 0;
+       var lng_max = 0;
+        appear.forEach(function(pair){
+          lat_min = Math.min(lat_min,pair[0]);
+          lng_min = Math.min(lng_min,pair[1]);
+          lat_max = Math.max(lat_max,pair[0]);
+          lng_max = Math.max(lng_max,pair[1]);
+        });
+        lat = (lat_min+lat_max)/2;
+        lng = (lng_min+lng_max)/2;
+        const win = window.innerWidth;
+        max_dist = Math.max((lat - lat_min)/400, (lng - lng_min)/(win*0.8));
+        zoom = Math.log(156543.03392 * Math.cos(lat * Math.PI / 180) / (max_dist*100000))*1.25;
+
+    }
+
+    function draw(i,j){
+      center(i,j)
+        map = new google.maps.Map(document.getElementById("map"), {
+        zoom: zoom,
+        center: { lat: lat, lng: lng },
+        mapTypeId: "terrain",
+      });
+
+      const flightPath = new google.maps.Polyline({
+        path: flightPlanCoordinates.slice(i,j),
+        geodesic: true,
+        strokeColor: "#FF0000",
+        strokeOpacity: 1.0,
+        strokeWeight: 3,
+      });
+
+      flightPath.setMap(map);
+    }
+
+    function addMarker(lat, lng) {
+      markers[0].setMap(null);
+      const marker = new google.maps.Marker({
+          position: { lat: lat, lng: lng },
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: '#FF0000',
+            fillOpacity: 1,
+            strokeWeight: 0,
+            scale: 7,
+          },
+      });
+      markers = [marker];
+    }
+
+    function initMap() {
+    draw({{start}},{{end}})
+  }
+  function update(i,j){
+    draw(i,j)
+    point(i)
+  }
+
+  </script>
+  <script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0&callback=initMap">
+  </script>
+
+  <script>
+  function encodeQ(start, end, data) {
+    var payload = JSON.stringify({s: Math.round(start), e: Math.round(end), d: String(data)});
+    return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+  function new_segment() {
+    var parameters = {{parameters}};
+    var start = {{start}};
+    var end = {{end}};
+    window.location.href = "/new_segment?q=" + encodeQ(start, end, parameters);
+  }
+  </script>
+
+</body>
+</html>

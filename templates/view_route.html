@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title or 'Route'}}</title>
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; color: #333; }
+
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        .page-title {
+            padding: 20px 28px 4px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #222;
+        }
+        .page-subtitle {
+            padding: 0 28px 16px;
+            font-size: 0.82rem;
+            color: #999;
+        }
+
+        /* Main layout */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            padding: 0 28px 28px;
+            align-items: flex-start;
+        }
+        .left-col { flex: 1 1 0; min-width: 0; }
+        .right-col { width: 300px; flex-shrink: 0; }
+
+        /* Map */
+        .map-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        #map { width: 100%; height: 380px; }
+
+        /* Elevation chart */
+        .chart-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 16px 20px 12px;
+            margin-bottom: 16px;
+        }
+        .chart-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #bbb;
+            margin-bottom: 8px;
+        }
+
+        /* Parameter form */
+        .form-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .form-card h3 {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            margin-bottom: 14px;
+        }
+        .field { margin-bottom: 12px; }
+        .field label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .field input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .field input:focus { outline: none; border-color: #478ac9; }
+
+        .phint {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            line-height: 14px;
+            text-align: center;
+            background: #e0eaf5;
+            color: #478ac9;
+            border-radius: 50%;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: default;
+            margin-left: 4px;
+            position: relative;
+            vertical-align: middle;
+        }
+        .phint::after {
+            content: attr(data-hint);
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #333;
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 400;
+            padding: 6px 9px;
+            border-radius: 5px;
+            white-space: normal;
+            width: 210px;
+            z-index: 100;
+            line-height: 1.4;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+        .phint:hover::after { display: block; }
+
+        .slider-row { display: flex; align-items: center; gap: 8px; }
+        .slider-row input[type=range] { flex: 1; accent-color: #478ac9; }
+        .slider-val { font-size: 0.85rem; font-weight: 700; color: #478ac9; min-width: 28px; text-align: right; }
+        .btn-calc {
+            width: 100%;
+            background: #478ac9;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 11px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 4px;
+        }
+        .btn-calc:hover { background: #2f6fa8; }
+
+        /* Results summary */
+        .result-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .result-card h3 {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            margin-bottom: 14px;
+        }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .result-label { font-size: 0.8rem; color: #888; }
+        .result-val { font-size: 0.92rem; font-weight: 700; color: #333; }
+        .result-val.time { color: #478ac9; font-size: 1.1rem; }
+
+        /* Sections table */
+        .sections-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 0;
+            overflow: hidden;
+        }
+        .sections-card h3 {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            padding: 16px 20px 0;
+            margin-bottom: 12px;
+        }
+        .sections-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        .sections-table th {
+            text-align: left;
+            padding: 6px 12px;
+            color: #999;
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .sections-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f7f7f7;
+            color: #444;
+        }
+        .sections-table tr:last-child td { border-bottom: none; }
+        .grade-cell { font-weight: 600; }
+        .grade-pos { color: #e07b39; }
+        .grade-neg { color: #478ac9; }
+        .grade-flat { color: #888; }
+    </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    {%for page in page_permissions[role()]%}
+    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+    {%endfor%}
+  </nav>
+
+  <div class="page-title">{{title or 'Route'}}</div>
+  <div class="page-subtitle">{{total_dist}} km</div>
+
+  <div class="main-layout">
+    <!-- Left column: map + elevation -->
+    <div class="left-col">
+      <div class="map-card">
+        <div id="map"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-label">Elevation profile</div>
+        <div id="elev-chart"></div>
+      </div>
+
+      {% if section_data %}
+      <div class="sections-card">
+        <h3>Section Breakdown</h3>
+        <table class="sections-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Dist (m)</th>
+              <th>Grade (%)</th>
+              <th>Speed (km/h)</th>
+              <th>Power (W)</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in section_data %}
+            {% set t_min = (s.time // 60)|int %}
+            {% set t_sec = (s.time % 60)|int %}
+            <tr>
+              <td>{{loop.index}}</td>
+              <td>{{s.distance|int}}</td>
+              <td class="grade-cell {% if s.grade > 1 %}grade-pos{% elif s.grade < -1 %}grade-neg{% else %}grade-flat{% endif %}">{{s.grade}}</td>
+              <td>{{s.speed}}</td>
+              <td>{{s.power|int}}</td>
+              <td>{{t_min}}'{{"%02d"|format(t_sec)}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right column: form + results -->
+    <div class="right-col">
+      <div class="form-card">
+        <h3>Parameters</h3>
+        <form method="POST" action="/calculate_route">
+          <input type="hidden" name="user" value="{{user}}">
+          <input type="hidden" name="id_route" value="{{id_route}}">
+          <div class="field">
+            <label>CdA flat (m²) <span class="phint" data-hint="Aerodynamic drag area in flat/descending position. Typical road aero position: 0.22–0.30 m². Standard road position: 0.30–0.40 m².">?</span></label>
+            <input type="number" step="0.001" name="cda_flat" value="{{ form_vals.cda_flat if form_vals else '0.280' }}" required>
+          </div>
+          <div class="field">
+            <label>CdA uphill (m²) <span class="phint" data-hint="CdA in climbing position (usually more upright). Typical seated climb: 0.30–0.42 m². Usually 0.02–0.06 m² higher than flat CdA.">?</span></label>
+            <input type="number" step="0.001" name="cda_up" value="{{ form_vals.cda_up if form_vals else '0.340' }}" required>
+          </div>
+          <div class="field">
+            <label>Weight (kg) <span class="phint" data-hint="Total system weight: rider + bike + kit + water bottles. Typical road rider: 70–90 kg.">?</span></label>
+            <input type="number" step="0.1" name="weight" value="{{ form_vals.weight if form_vals else '75' }}" required>
+          </div>
+          <div class="field">
+            <label>Crr <span class="phint" data-hint="Rolling resistance coefficient. Road race tyre (asphalt): 0.002–0.004. Training tyre: 0.004–0.006. Typical default: 0.004.">?</span></label>
+            <input type="number" step="0.0001" name="crr" value="{{ form_vals.crr if form_vals else '0.004' }}" required>
+          </div>
+          <div class="field">
+            <label>Target NP (W) <span class="phint" data-hint="Normalised Power target for the ride. Determines pacing effort per section. Typical FTP for amateur: 200–280 W.">?</span></label>
+            <input type="number" step="1" name="np_target" value="{{ form_vals.np_target if form_vals else '200' }}" required>
+          </div>
+          <div class="field">
+            <label>Sections <span style="font-weight:400;color:#bbb;">(number of grade segments)</span></label>
+            <div class="slider-row">
+              <input type="range" name="max_sections" id="sections_slider"
+                min="1" max="20" step="1"
+                value="{{ max_sections|default(5)|int }}"
+                oninput="document.getElementById('sections_val').textContent=this.value">
+              <span class="slider-val" id="sections_val">{{ max_sections|default(5)|int }}</span>
+            </div>
+          </div>
+          <button class="btn-calc" type="submit">Calculate time</button>
+        </form>
+      </div>
+
+      {% if results %}
+      <div class="result-card">
+        <h3>Result</h3>
+        <div class="result-row">
+          <span class="result-label">Total time</span>
+          <span class="result-val time">{{results.time}}</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Normalised power</span>
+          <span class="result-val">{{results.np|int}} W</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Distance</span>
+          <span class="result-val">{{total_dist}} km</span>
+        </div>
+      </div>
+      <form method="POST" action="/toptube_pdf" target="_blank" style="margin-top:10px;">
+        <input type="hidden" name="user" value="{{user}}">
+        <input type="hidden" name="id_route" value="{{id_route}}">
+        <input type="hidden" name="cda_flat" value="{{form_vals.cda_flat}}">
+        <input type="hidden" name="cda_up" value="{{form_vals.cda_up}}">
+        <input type="hidden" name="weight" value="{{form_vals.weight}}">
+        <input type="hidden" name="crr" value="{{form_vals.crr}}">
+        <input type="hidden" name="np_target" value="{{form_vals.np_target}}">
+        <input type="hidden" name="max_sections" value="{{max_sections|default(5)|int}}">
+        <input type="hidden" name="orientation" value="vertical">
+        <button class="btn-calc" type="submit" style="background:#555;width:100%;margin-top:0;">Generate top tube PDF</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Google Maps -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0"></script>
+  <script>
+    var rawPts = {{raw_pts|tojson}};
+    var profile = {{profile|tojson}};
+    var borderDistances = {{border_distances|tojson}};
+
+    function initMap() {
+      var coords = rawPts.map(function(p){ return {lat: p[0], lng: p[1]}; });
+      var lat_min = 90, lat_max = -90, lng_min = 180, lng_max = -180;
+      coords.forEach(function(c){
+        lat_min = Math.min(lat_min, c.lat); lat_max = Math.max(lat_max, c.lat);
+        lng_min = Math.min(lng_min, c.lng); lng_max = Math.max(lng_max, c.lng);
+      });
+      var center = {lat: (lat_min+lat_max)/2, lng: (lng_min+lng_max)/2};
+      var maxDist = Math.max((lat_max-lat_min)/400, (lng_max-lng_min)/(window.innerWidth));
+      var zoom = Math.log(156543.03392 * Math.cos(center.lat * Math.PI/180) / (maxDist*100000)) * 1.25;
+      var map = new google.maps.Map(document.getElementById('map'), {
+        zoom: Math.round(zoom), center: center, mapTypeId: 'terrain'
+      });
+      new google.maps.Polyline({path: coords, geodesic: true, strokeColor: '#FF0000', strokeOpacity: 1.0, strokeWeight: 3}).setMap(map);
+    }
+    initMap();
+
+    // D3 elevation chart
+    (function() {
+      var margin = {top: 8, right: 16, bottom: 30, left: 46};
+      var container = document.getElementById('elev-chart');
+      var W = container.clientWidth || 600;
+      var H = 130;
+      var w = W - margin.left - margin.right;
+      var h = H - margin.top - margin.bottom;
+
+      var xScale = d3.scaleLinear().domain([0, profile[profile.length-1][0]]).range([0, w]);
+      var yMin = d3.min(profile, function(d){ return d[1]; });
+      var yMax = d3.max(profile, function(d){ return d[1]; });
+      var yScale = d3.scaleLinear().domain([yMin - 10, yMax + 10]).range([h, 0]);
+
+      var svg = d3.select('#elev-chart').append('svg')
+        .attr('width', W).attr('height', H)
+        .append('g').attr('transform', 'translate('+margin.left+','+margin.top+')');
+
+      // Elevation area fill + stroke
+      var area = d3.area()
+        .x(function(d){ return xScale(d[0]); })
+        .y0(h)
+        .y1(function(d){ return yScale(d[1]); });
+      svg.append('path').datum(profile)
+        .attr('fill', '#e8f0f8').attr('stroke', '#478ac9').attr('stroke-width', 1.5)
+        .attr('d', area);
+
+      // Peucker-Douglas piecewise-linear overlay
+      if (borderDistances && borderDistances.length >= 2) {
+        function interpElev(prof, d_target) {
+          for (var k = 0; k < prof.length - 1; k++) {
+            if (prof[k][0] <= d_target && prof[k+1][0] >= d_target) {
+              var frac = (d_target - prof[k][0]) / (prof[k+1][0] - prof[k][0]);
+              return prof[k][1] + frac * (prof[k+1][1] - prof[k][1]);
+            }
+          }
+          return prof[prof.length-1][1];
+        }
+        var pdPts = borderDistances.map(function(d) { return [d, interpElev(profile, d)]; });
+        var pdLine = d3.line()
+          .x(function(p){ return xScale(p[0]); })
+          .y(function(p){ return yScale(p[1]); });
+        svg.append('path').datum(pdPts)
+          .attr('fill', 'none').attr('stroke', '#e07b39').attr('stroke-width', 2)
+          .attr('d', pdLine);
+      }
+
+      svg.append('g').attr('transform', 'translate(0,'+h+')')
+        .call(d3.axisBottom(xScale).ticks(5).tickFormat(function(d){ return (d/1000).toFixed(0)+'km'; }))
+        .selectAll('text').style('font-size', '10px');
+
+      svg.append('g')
+        .call(d3.axisLeft(yScale).ticks(4).tickFormat(function(d){ return d+'m'; }))
+        .selectAll('text').style('font-size', '10px');
+    })();
+  </script>
+
+</body>
+</html>

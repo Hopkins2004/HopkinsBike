@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html style="font-size: 16px;" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <title>Routes</title>
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; margin: 0; color: #333; }
+
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 28px 12px 28px;
+        }
+        .filter-bar input {
+            padding: 7px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            width: 220px;
+        }
+        .filter-bar input:focus { outline: none; border-color: #478ac9; }
+        .filter-label { font-size: 0.8rem; color: #888; }
+
+        .page-content { padding: 0 28px 28px 28px; }
+        .section-wrapper { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            background: #fff;
+        }
+        .data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+        .route-row { cursor: pointer; }
+        .route-row:hover td { background: #f9fbff; }
+        .no-data td { color: #aaa; text-align: center; padding: 24px; }
+
+        .txt-btn {
+            background: none;
+            border: none;
+            padding: 2px 4px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            color: #888;
+            text-decoration: none;
+            display: inline-block;
+            transition: color 0.15s;
+        }
+        .txt-btn:hover { color: #333; }
+        .txt-btn.danger { color: #b71c1c; }
+        .txt-btn.danger:hover { color: #7f0000; }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 24px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            z-index: 1000;
+            min-width: 340px;
+        }
+        .modal h3 { margin: 0 0 14px 0; font-size: 1rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 999; }
+        .modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px; }
+        .btn-close   { background: #f0f0f0; color: #555; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
+        .btn-close:hover { background: #e0e0e0; }
+        .btn-submit  { background: #478ac9; color: #fff; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
+        .btn-submit:hover { background: #2f6fa8; }
+        .rename-input { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; margin-top: 6px; }
+    </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    {%for page in page_permissions[role()]%}
+    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+    {%endfor%}
+  </nav>
+
+  <div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <input type="text" id="route-search" placeholder="Search by title..." oninput="filterRoutes()">
+  </div>
+
+  <div class="page-content">
+    <div class="section-wrapper">
+      <table class="data-table">
+        {%if routes%}
+        <tbody>
+          {%for row in routes%}
+          {%set rid = row[0]%}
+          {% set route_url = '/view_route?q=' + encode_q(0, 0, user|string + ',' + rid|string) %}
+          <tr class="route-row" data-title="{{ row[1]|lower if row[1] else '' }}" onclick="window.location='{{route_url}}'">
+            <td>{{row[1] or 'Unnamed route'}}</td>
+            <td>{{row[2]}} km</td>
+            <td style="text-align:right; white-space:nowrap;" onclick="event.stopPropagation()">
+              <button class="txt-btn" onclick="openModal('rename_{{rid}}','overlay_rename_{{rid}}')">Rename</button>
+              <button class="txt-btn danger" onclick="openModal('delete_{{rid}}','overlay_delete_{{rid}}')">Delete</button>
+            </td>
+          </tr>
+
+          <!-- Rename modal -->
+          <div id="rename_{{rid}}" class="modal">
+            <h3>Rename Route</h3>
+            <form method="POST" action="/rename_route">
+              <input type="hidden" name="id_route" value="{{rid}}">
+              <input class="rename-input" type="text" name="new_title" value="{{row[1] or ''}}" placeholder="New name" required>
+              <div class="modal-actions">
+                <button type="button" class="btn-close" onclick="closeModal('rename_{{rid}}','overlay_rename_{{rid}}')">Cancel</button>
+                <button type="submit" class="btn-submit">Save</button>
+              </div>
+            </form>
+          </div>
+          <div id="overlay_rename_{{rid}}" class="overlay" onclick="closeModal('rename_{{rid}}','overlay_rename_{{rid}}')"></div>
+
+          <!-- Delete modal -->
+          <div id="delete_{{rid}}" class="modal">
+            <h3>Delete Route</h3>
+            <p style="font-size:0.9rem;color:#555;">Delete <strong>{{row[1] or 'this route'}}</strong>?</p>
+            <div class="modal-actions">
+              <button class="btn-close" onclick="closeModal('delete_{{rid}}','overlay_delete_{{rid}}')">Cancel</button>
+              <form method="POST" action="/delete_route">
+                <input type="hidden" name="id_route" value="{{rid}}">
+                <button class="btn-submit" style="background:#b71c1c;" type="submit">Delete</button>
+              </form>
+            </div>
+          </div>
+          <div id="overlay_delete_{{rid}}" class="overlay" onclick="closeModal('delete_{{rid}}','overlay_delete_{{rid}}')"></div>
+
+          {%endfor%}
+        </tbody>
+        {%else%}
+        <tbody><tr class="no-data"><td colspan="3">No routes yet. Upload a GPX file.</td></tr></tbody>
+        {%endif%}
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function openModal(m, o) { document.getElementById(m).style.display='block'; document.getElementById(o).style.display='block'; }
+    function closeModal(m, o) { document.getElementById(m).style.display='none'; document.getElementById(o).style.display='none'; }
+    function filterRoutes() {
+      var q = document.getElementById('route-search').value.toLowerCase();
+      document.querySelectorAll('.route-row').forEach(function(r) {
+        r.style.display = (r.getAttribute('data-title') || '').includes(q) ? '' : 'none';
+      });
+    }
+  </script>
+
+</body>
+</html>

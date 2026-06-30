@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whitepaper — Hopkins</title>
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; color: #333; }
+
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        .page-content {
+            max-width: 820px;
+            margin: 48px auto;
+            padding: 0 24px 80px;
+        }
+
+        .page-title {
+            font-size: 1.7rem;
+            font-weight: 300;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #222;
+            margin-bottom: 8px;
+        }
+        .page-subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            font-weight: 300;
+            margin-bottom: 48px;
+            border-bottom: 1px solid #e8e8e8;
+            padding-bottom: 24px;
+        }
+
+        .toc {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 40px;
+        }
+        .toc h3 {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 12px;
+        }
+        .toc ol {
+            padding-left: 18px;
+        }
+        .toc ol li {
+            font-size: 0.87rem;
+            line-height: 2;
+            color: #478ac9;
+        }
+        .toc ol li a {
+            color: #478ac9;
+            text-decoration: none;
+        }
+        .toc ol li a:hover { text-decoration: underline; }
+
+        .section {
+            margin-bottom: 52px;
+        }
+        .section-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #478ac9;
+            margin-bottom: 8px;
+        }
+        .section h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #222;
+            margin-bottom: 16px;
+        }
+        .section h3 {
+            font-size: 0.97rem;
+            font-weight: 600;
+            color: #333;
+            margin: 20px 0 10px;
+        }
+        .section p {
+            font-size: 0.9rem;
+            line-height: 1.85;
+            color: #555;
+            margin-bottom: 12px;
+        }
+
+        .formula-block {
+            background: #1e2736;
+            border-radius: 6px;
+            padding: 18px 22px;
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+        .formula-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #c8d8f0;
+            white-space: pre;
+        }
+        .formula-block .comment {
+            color: #6a8caf;
+        }
+
+        .inline-code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            background: #e8edf3;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #2a4a6b;
+        }
+
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 0.86rem;
+        }
+        .param-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #f0f4f8;
+            color: #666;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #dde4ed;
+        }
+        .param-table td {
+            padding: 9px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #444;
+            vertical-align: top;
+        }
+        .param-table tr:last-child td { border-bottom: none; }
+        .param-table td:first-child {
+            font-family: 'Courier New', monospace;
+            font-size: 0.83rem;
+            color: #2a4a6b;
+            white-space: nowrap;
+        }
+
+        .note-box {
+            background: #fffbe6;
+            border-left: 3px solid #f0b429;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 16px 0;
+            font-size: 0.86rem;
+            line-height: 1.7;
+            color: #5a4a00;
+        }
+
+        .divider { border: none; border-top: 1px solid #e8e8e8; margin: 44px 0; }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        {%for page in page_permissions[role()]%}
+        <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+        {%endfor%}
+        <a href="/home">Home</a>
+    </nav>
+
+    <div class="page-content">
+        <h1 class="page-title">Whitepaper</h1>
+        <p class="page-subtitle">Technical reference for the physics models and algorithms used by Hopkins.</p>
+
+        <div class="toc">
+            <h3>Contents</h3>
+            <ol>
+                <li><a href="#power-balance">Power balance model</a></li>
+                <li><a href="#cda-inversion">CdA inversion from ride data</a></li>
+                <li><a href="#speed-solver">Speed solver</a></li>
+                <li><a href="#fit-parsing">FIT file parsing pipeline</a></li>
+                <li><a href="#gpx-model">GPX route modelling</a></li>
+                <li><a href="#assumptions">Assumptions and limitations</a></li>
+            </ol>
+        </div>
+
+        <!-- 1. Power balance -->
+        <div class="section" id="power-balance">
+            <div class="section-label">Section 1</div>
+            <h2>Power balance model</h2>
+            <p>The fundamental assumption is that, at a given instant, all mechanical power produced by the rider is consumed by three resistance forces: aerodynamic drag, rolling resistance, and gravity.</p>
+
+            <h3>Total power equation</h3>
+            <div class="formula-block"><code>P = P_aero + P_rolling + P_gravity
+
+P_aero    = ½ · ρ · CdA · v³
+P_rolling = m · g · Crr · v
+P_gravity = m · g · (grade/100) · v</code></div>
+
+            <table class="param-table">
+                <thead>
+                    <tr><th>Symbol</th><th>Quantity</th><th>Unit</th><th>Typical value</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>P</td><td>Mechanical power output</td><td>W</td><td>—</td></tr>
+                    <tr><td>ρ</td><td>Air density</td><td>kg/m³</td><td>1.2 (sea level, 20 °C)</td></tr>
+                    <tr><td>CdA</td><td>Aerodynamic drag area</td><td>m²</td><td>0.20–0.40</td></tr>
+                    <tr><td>v</td><td>Ground speed</td><td>m/s</td><td>—</td></tr>
+                    <tr><td>m</td><td>Total system mass (rider + bike)</td><td>kg</td><td>70–100</td></tr>
+                    <tr><td>g</td><td>Gravitational acceleration</td><td>m/s²</td><td>9.81</td></tr>
+                    <tr><td>Crr</td><td>Rolling resistance coefficient</td><td>—</td><td>0.003–0.005</td></tr>
+                    <tr><td>grade</td><td>Road gradient</td><td>%</td><td>—</td></tr>
+                </tbody>
+            </table>
+
+            <p>Air density is fixed at 1.2 kg/m³. This is a reasonable approximation at sea level in temperate conditions. Altitude, temperature, and humidity all affect ρ; for high-altitude testing, this should be corrected.</p>
+            <p>Wind speed is not measured. The model assumes still air — any headwind or tailwind will directly bias the CdA result. For reliable measurements, riding in both directions and averaging is recommended.</p>
+        </div>
+
+        <hr class="divider">
+
+        <!-- 2. CdA inversion -->
+        <div class="section" id="cda-inversion">
+            <div class="section-label">Section 2</div>
+            <h2>CdA inversion from ride data</h2>
+            <p>Given a recorded segment with known average power, speed, and grade, the power balance equation is rearranged to solve for CdA:</p>
+
+            <div class="formula-block"><code><span class="comment"># Effective power after drivetrain losses</span>
+P_eff = P × η
+
+<span class="comment"># Subtract gravitational and rolling components</span>
+P_aero = P_eff − m·g·v·(grade/100) − m·g·v·Crr
+
+<span class="comment"># Solve for CdA</span>
+CdA = 2 · P_aero / (ρ · v³)</code></div>
+
+            <p>Where <span class="inline-code">η</span> is the drivetrain efficiency entered by the user (typically 0.97 for a clean road drivetrain). This accounts for mechanical losses in the chain, bearings, and derailleur pulleys before power reaches the rear wheel.</p>
+
+            <div class="note-box">
+                <strong>Floor at zero:</strong> If the computed P_aero is negative (e.g. on a steep descent where gravity dominates), CdA is clamped to 0. This prevents physically nonsensical negative drag values for segments where gravity and rolling resistance already exceed total power output.
+            </div>
+
+            <h3>Segment-level computation</h3>
+            <p>CdA is computed independently for each aggregated segment (approximately 20 seconds of data). Segments where average speed falls below 2 m/s are excluded — at very low speeds, the aerodynamic term is negligible and numerical noise dominates.</p>
+            <p>The reported CdA for a selected section of the ride is the value computed from the time-weighted averages of that entire window, not a mean of per-segment values.</p>
+        </div>
+
+        <hr class="divider">
+
+        <!-- 3. Speed solver -->
+        <div class="section" id="speed-solver">
+            <div class="section-label">Section 3</div>
+            <h2>Speed solver</h2>
+            <p>The inverse problem — given a target power and road grade, what speed will the rider reach? — is used by the GPX route modelling feature. There is no closed-form solution to the cubic power equation, so Hopkins uses a stepped iterative solver:</p>
+
+            <div class="formula-block"><code><span class="comment"># Increase speed in coarse steps until power is exceeded</span>
+v = 0
+while P(v) &lt; P_target:
+    v += 1.0
+
+<span class="comment"># Back off one coarse step, then refine at 0.1 m/s</span>
+v -= 1.0
+while P(v) &lt; P_target:
+    v += 0.1
+
+<span class="comment"># Back off and refine further at 0.01 m/s</span>
+v -= 0.1
+while P(v) &lt; P_target:
+    v += 0.01</code></div>
+
+            <p>The result is accurate to within 0.01 m/s (0.036 km/h). A maximum speed cap is applied: if the solver exceeds the user-defined maximum speed, that cap is returned instead (relevant on long descents).</p>
+            <p>The three-pass refinement avoids the overhead of a full bisection while providing sufficient precision for pacing purposes.</p>
+        </div>
+
+        <hr class="divider">
+
+        <!-- 4. FIT parsing -->
+        <div class="section" id="fit-parsing">
+            <div class="section-label">Section 4</div>
+            <h2>FIT file parsing pipeline</h2>
+
+            <h3>Coordinate conversion</h3>
+            <p>Garmin FIT files store GPS coordinates in <em>semicircles</em>, an integer representation of angle. To convert to decimal degrees:</p>
+            <div class="formula-block"><code>latitude_deg  = position_lat  / 11,930,465
+longitude_deg = position_long / 11,930,465</code></div>
+            <p>The constant 11,930,465 is derived from 2³¹ / 180 — the number of semicircle units per degree.</p>
+
+            <h3>Micro-segment construction</h3>
+            <p>Each consecutive pair of fitpoints defines one micro-segment:</p>
+            <div class="formula-block"><code>time     = t₂ − t₁           <span class="comment"># seconds</span>
+distance = d₂ − d₁           <span class="comment"># metres (cumulative device distance)</span>
+altitude = alt₂ − alt₁       <span class="comment"># metres gain</span>
+grade    = altitude / distance × 100   <span class="comment"># percent</span>
+avg_speed = distance / time  <span class="comment"># m/s</span></code></div>
+            <p>Power and heart rate are taken from the <em>start</em> point of each micro-segment (the FIT record is instantaneous, so no interpolation is applied).</p>
+
+            <h3>Temporal aggregation</h3>
+            <p>Groups of <em>N</em> consecutive micro-segments (default N = 20) are merged into a single aggregated segment. Time-sensitive quantities (HR, cadence, power) are weighted by the duration of each micro-segment:</p>
+            <div class="formula-block"><code>avg_power = Σ(powerᵢ × timeᵢ) / Σ(timeᵢ)</code></div>
+            <p>Distance and altitude are summed directly. The first and last N points of each activity are discarded to avoid edge artifacts.</p>
+
+            <h3>Lap extraction</h3>
+            <p>Lap markers are stored as separate <span class="inline-code">lap</span> messages in the FIT file. Each lap has a <span class="inline-code">start_time</span> and <span class="inline-code">timestamp</span> (end time). These are matched against fitpoint timestamps to produce point-index boundaries, which are then rendered as clickable bands in the activity view.</p>
+        </div>
+
+        <hr class="divider">
+
+        <!-- 5. GPX modelling -->
+        <div class="section" id="gpx-model">
+            <div class="section-label">Section 5</div>
+            <h2>GPX route modelling</h2>
+            <p>The GPX modelling pipeline is a separate, forward simulation mode. Rather than extracting CdA from recorded power, it takes a GPX route file and a set of rider parameters, and predicts finish time and pacing across the course.</p>
+
+            <h3>Haversine distance</h3>
+            <p>GPS coordinates in the GPX file (decimal degrees) are converted to ground distance using the Haversine formula, which accounts for the spherical geometry of the Earth (radius R = 6,371,000 m):</p>
+            <div class="formula-block"><code>Δφ = φ₂ − φ₁
+Δλ = λ₂ − λ₁
+
+a = sin²(Δφ/2) + cos(φ₁)·cos(φ₂)·sin²(Δλ/2)
+c = 2 · atan2(√a, √(1−a))
+d = R · c</code></div>
+            <p>Elevation change between consecutive GPX points is taken directly from the <span class="inline-code">elevation</span> field. Grade in ‰ (per mille) is computed over 100 m windows to smooth GPS elevation noise:</p>
+            <div class="formula-block"><code>grade_permille = round(Δelevation / distance × 1000)</code></div>
+
+            <h3>Grade binning</h3>
+            <p>For pacing optimisation, the route is reduced to eight terrain bins by gradient. Each bin accumulates total distance, and a different power target is assigned to each bin:</p>
+            <div class="formula-block"><code>Bins (grade in ‰):
+  0  →  &lt; −30   (steep descent)
+  1  →  −30 to 0  (gentle descent / false flat)
+  2  →  0 to 10   (near flat)
+  3  →  10 to 20  (slight uphill)
+  4  →  20 to 30  (moderate climb)
+  5  →  30 to 50  (sustained climb)
+  6  →  50 to 80  (steep climb)
+  7  →  ≥ 80      (very steep)</code></div>
+
+            <h3>Dual-CdA model</h3>
+            <p>Cyclists adopt different body positions depending on terrain. On flat or slightly rolling terrain, a rider typically holds an aerodynamic (low) position; on climbs, they sit upright. The model accepts two CdA values:</p>
+            <div class="formula-block"><code>cda_low   <span class="comment"># aerodynamic position (flat/descent bins 1–3)</span>
+cda_base  <span class="comment"># upright position (climbing bins 4–7 and steep descents)</span></code></div>
+            <p>For bins 0 (steep descent), 4, 5, 6, and 7 (moderate to steep climbs), <span class="inline-code">cda_base</span> is used. For bins 1–3 (slight downhill to moderate uphill), <span class="inline-code">cda_low</span> is applied. This reflects the real-world practice of staying aero on the flats but sitting up on climbs.</p>
+
+            <h3>Pacing simulation</h3>
+            <p>Given a target normalised power (NP) and a power distribution across the eight bins, the simulator computes elapsed time per bin using the speed solver described in Section 3. A renormalisation loop adjusts the per-bin power distribution to match the target NP while minimising total time — effectively solving a constrained optimisation problem over the pacing strategy.</p>
+
+            <div class="note-box">
+                <strong>Deployment note:</strong> The GPX simulation feature is implemented in the codebase but is not yet exposed as a user-facing page. The physics described in this section reflects the current implementation.
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- 6. Assumptions -->
+        <div class="section" id="assumptions">
+            <div class="section-label">Section 6</div>
+            <h2>Assumptions and limitations</h2>
+            <table class="param-table">
+                <thead>
+                    <tr><th>Assumption</th><th>Impact if violated</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Zero wind</td>
+                        <td>Any ambient wind directly shifts CdA. A 1 m/s headwind at 40 km/h causes roughly +0.02 m² error. Ride out-and-back and average to partially cancel this.</td>
+                    </tr>
+                    <tr>
+                        <td>ρ = 1.2 kg/m³</td>
+                        <td>Air density varies ±5% between sea level and 1000 m, and with temperature. Correct for altitude: ρ ≈ 1.2 × exp(−altitude / 8500).</td>
+                    </tr>
+                    <tr>
+                        <td>Uniform Crr</td>
+                        <td>Rolling resistance varies with surface, tyre pressure, and temperature. Use a value appropriate for your tyres and conditions.</td>
+                    </tr>
+                    <tr>
+                        <td>Power meter accuracy</td>
+                        <td>Most power meters are accurate to ±2%. This translates to roughly ±0.005 m² CdA at typical road speeds.</td>
+                    </tr>
+                    <tr>
+                        <td>GPS altitude accuracy</td>
+                        <td>Barometric altitude (when available) is more accurate than GPS altitude. Grade errors affect the gravity subtraction term. Use flat roads to minimise this source of error.</td>
+                    </tr>
+                    <tr>
+                        <td>Steady-state speed</td>
+                        <td>The model uses segment-average speed and power. Rapid acceleration within a segment violates the steady-state assumption. Select smooth, constant-pace efforts.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

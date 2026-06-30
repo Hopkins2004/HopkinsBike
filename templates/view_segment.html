@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title or 'Segment'}}</title>
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; color: #333; }
+
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        .page-title {
+            padding: 20px 28px 4px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #222;
+        }
+        .page-subtitle {
+            padding: 0 28px 16px;
+            font-size: 0.82rem;
+            color: #999;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            padding: 0 28px 28px;
+            align-items: flex-start;
+        }
+        .left-col { flex: 1 1 0; min-width: 0; }
+        .right-col { width: 300px; flex-shrink: 0; }
+
+        .map-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        #map { width: 100%; height: 320px; }
+
+        .chart-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 6px 10px 4px;
+            margin-bottom: 8px;
+        }
+        .chart-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #bbb;
+            margin-bottom: 8px;
+        }
+
+        .info-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .info-card h3 {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            margin-bottom: 14px;
+        }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .info-label { font-size: 0.8rem; color: #888; }
+        .info-val { font-size: 0.92rem; font-weight: 700; color: #333; }
+        .info-val.cda { color: #478ac9; font-size: 1.1rem; }
+
+        .comment-text {
+            font-size: 0.85rem;
+            color: #555;
+            font-style: italic;
+            margin-top: 8px;
+            white-space: pre-wrap;
+        }
+
+        .btn-edit {
+            width: 100%;
+            padding: 7px;
+            background: #f0f4fa;
+            color: #478ac9;
+            border: 1px solid #cde;
+            border-radius: 4px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-edit:hover { background: #e3eaf5; }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.38);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+            padding: 24px 22px 20px;
+            width: 320px;
+            max-width: 95vw;
+            position: relative;
+        }
+        .modal-content h3 {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            margin-bottom: 14px;
+        }
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #aaa;
+            line-height: 1;
+        }
+        .modal-close:hover { color: #333; }
+
+        .sections-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 0;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .sections-card h3 {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            padding: 16px 20px 0;
+            margin-bottom: 12px;
+        }
+        .sections-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        .sections-table th {
+            text-align: left;
+            padding: 6px 12px;
+            color: #999;
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .sections-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f7f7f7;
+            color: #444;
+        }
+        .sections-table tr:last-child td { border-bottom: none; }
+        .grade-cell { font-weight: 600; }
+        .grade-pos { color: #e07b39; }
+        .grade-neg { color: #478ac9; }
+        .grade-flat { color: #888; }
+        .cda-cell { font-weight: 700; color: #333; }
+
+        .edit-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .edit-card h3 {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            margin-bottom: 14px;
+        }
+        .edit-field { margin-bottom: 10px; }
+        .edit-field label {
+            display: block;
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 3px;
+        }
+        .edit-field input, .edit-field textarea {
+            width: 100%;
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+        .edit-field textarea { resize: vertical; min-height: 54px; }
+        .btn-save {
+            width: 100%;
+            padding: 8px;
+            background: #478ac9;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .btn-save:hover { background: #3478b0; }
+
+        .phint {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            line-height: 14px;
+            text-align: center;
+            background: #e0eaf5;
+            color: #478ac9;
+            border-radius: 50%;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: default;
+            margin-left: 4px;
+            position: relative;
+            vertical-align: middle;
+        }
+        .phint::after {
+            content: attr(data-hint);
+            display: none;
+            position: absolute;
+            right: 20px;
+            left: auto;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #333;
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 400;
+            padding: 6px 9px;
+            border-radius: 5px;
+            white-space: normal;
+            width: 210px;
+            z-index: 100;
+            line-height: 1.4;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+        .phint:hover::after { display: block; }
+    </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    {%for page in page_permissions[role()]%}
+    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+    {%endfor%}
+  </nav>
+
+  <div class="page-title">{{title or 'Segment'}}</div>
+
+  <div class="main-layout">
+    <div class="left-col">
+      <div class="map-card">
+        <div id="map"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-label">Power (W)</div>
+        <div id="power-chart"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-label">Speed (km/h)</div>
+        <div id="speed-chart"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-label">Elevation profile + section borders</div>
+        <div id="elev-chart"></div>
+      </div>
+
+      {% if sections|length > 1 %}
+      <div class="sections-card">
+        <h3>Section Breakdown</h3>
+        <table class="sections-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Dist (m)</th>
+              <th>Grade (%)</th>
+              <th>Speed (km/h)</th>
+              <th>Power (W)</th>
+              <th>CdA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sections %}
+            <tr>
+              <td>{{loop.index}}</td>
+              <td>{{s.distance|int}}</td>
+              <td class="grade-cell {% if s.grade > 1 %}grade-pos{% elif s.grade < -1 %}grade-neg{% else %}grade-flat{% endif %}">{{s.grade}}</td>
+              <td>{{s.speed}}</td>
+              <td>{{s.power|int}}</td>
+              <td class="cda-cell" id="sec-cda-{{loop.index0}}">{{s.cda}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="right-col">
+      <div class="info-card">
+        <h3>Result</h3>
+        <div class="info-row">
+          <span class="info-label">Rep. CdA</span>
+          <span class="info-val cda" id="rep-cda-val">{{rep_cda}}</span>
+        </div>
+        {% if sections %}
+        <div class="info-row">
+          <span class="info-label">Sections</span>
+          <span class="info-val">{{sections|length}}</span>
+        </div>
+        {% endif %}
+        {% if comment %}
+        <p class="comment-text">{{comment}}</p>
+        {% endif %}
+        <button class="btn-edit" onclick="document.getElementById('edit-modal').style.display='flex'">Edit parameters</button>
+      </div>
+
+      {% if sections|length == 1 %}
+      <div class="info-card">
+        <h3>Section Details</h3>
+        {% set s = sections[0] %}
+        <div class="info-row"><span class="info-label">Distance</span><span class="info-val">{{s.distance|int}} m</span></div>
+        <div class="info-row">
+          <span class="info-label">Grade</span>
+          <span class="info-val {% if s.grade > 1 %}grade-pos{% elif s.grade < -1 %}grade-neg{% else %}grade-flat{% endif %}">{{s.grade}} %</span>
+        </div>
+        <div class="info-row"><span class="info-label">Speed</span><span class="info-val">{{s.speed}} km/h</span></div>
+        <div class="info-row"><span class="info-label">Power</span><span class="info-val">{{s.power|int}} W</span></div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <div id="edit-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-content">
+      <button class="modal-close" onclick="document.getElementById('edit-modal').style.display='none'">×</button>
+      <h3>Edit</h3>
+      <form method="POST" action="/update_segment">
+        <input type="hidden" name="id_segments" value="{{seg_id}}">
+        <input type="hidden" name="user" value="{{user}}">
+        <div class="edit-field">
+          <label>Title</label>
+          <input type="text" name="title" value="{{title or ''}}">
+        </div>
+        <div class="edit-field">
+          <label>Comment</label>
+          <textarea name="comment">{{comment or ''}}</textarea>
+        </div>
+        <div class="edit-field">
+          <label>CRR <span class="phint" data-hint="Rolling resistance coefficient. Road race tyre: 0.002–0.004. Training tyre: 0.004–0.006. Typical default: 0.004.">?</span></label>
+          <input type="number" step="0.0001" name="crr" id="modal-crr" value="{{param_vals.crr}}">
+        </div>
+        <div class="edit-field">
+          <label>Weight (kg) <span class="phint" data-hint="Total system weight: rider + bike + kit + water bottles. Typical road rider: 70–90 kg.">?</span></label>
+          <input type="number" step="0.1" name="weight" id="modal-weight" value="{{param_vals.weight}}">
+        </div>
+        <div class="edit-field">
+          <label>Efficiency <span class="phint" data-hint="Drivetrain efficiency: fraction of power reaching the rear wheel. Clean chain: 0.97–0.99. Dirty/old drivetrain: 0.95–0.97. Default: 0.97.">?</span></label>
+          <input type="number" step="0.001" name="efficiency" id="modal-efficiency" value="{{param_vals.efficiency}}">
+        </div>
+        <button class="btn-save" type="submit">Save</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0"></script>
+  <script>
+    var coords = {{coords|tojson}};
+    var rawPower = {{power|tojson}};
+    var rawSpeed = {{pts_speed|tojson}};
+    var distData = {{pts_distances|tojson}};
+    var elevProfile = {{elev_profile|tojson}};
+    var borderDistances = {{border_distances|tojson}};
+
+    // Map
+    (function() {
+      var mapCoords = coords.filter(function(c){ return c[0] != null && c[1] != null; });
+      if (!mapCoords.length) return;
+      var lat_min = 90, lat_max = -90, lng_min = 180, lng_max = -180;
+      mapCoords.forEach(function(c){
+        lat_min = Math.min(lat_min, c[0]); lat_max = Math.max(lat_max, c[0]);
+        lng_min = Math.min(lng_min, c[1]); lng_max = Math.max(lng_max, c[1]);
+      });
+      var center = {lat: (lat_min+lat_max)/2, lng: (lng_min+lng_max)/2};
+      var maxDist = Math.max((lat_max-lat_min)/400, (lng_max-lng_min)/(window.innerWidth));
+      var zoom = Math.log(156543.03392 * Math.cos(center.lat * Math.PI/180) / (maxDist*100000)) * 1.25;
+      var map = new google.maps.Map(document.getElementById('map'), {
+        zoom: Math.round(zoom), center: center, mapTypeId: 'terrain'
+      });
+      var path = mapCoords.map(function(c){ return {lat: c[0], lng: c[1]}; });
+      new google.maps.Polyline({path: path, geodesic: true, strokeColor: '#FF0000', strokeOpacity: 1.0, strokeWeight: 3}).setMap(map);
+      new google.maps.Marker({position: path[0], map: map, title: 'Start'});
+      new google.maps.Marker({position: path[path.length-1], map: map, title: 'End'});
+    })();
+
+    // Shared setup for charts (distance x-axis)
+    var n = rawPower.length;
+    var xMax = distData.length ? distData[distData.length - 1] : 1;
+    var margin = {top: 4, right: 12, bottom: 22, left: 42};
+    var container0 = document.getElementById('power-chart');
+    var W = container0.clientWidth || 600;
+    var H = 85;
+    var w = W - margin.left - margin.right;
+    var h = H - margin.top - margin.bottom;
+
+    var xScale = d3.scaleLinear().domain([0, xMax]).range([0, w]);
+    function kmFmt(d) { return (d / 1000).toFixed(2) + ' km'; }
+
+    var bisectDist = d3.bisector(function(d) { return d; }).left;
+    function distToIdx(d) { return Math.min(Math.max(bisectDist(distData, d), 0), n - 1); }
+
+    // Shared tooltip
+    var ttDiv = document.createElement('div');
+    ttDiv.style.cssText = 'position:fixed;background:rgba(33,33,33,.88);color:#fff;padding:5px 9px;border-radius:5px;font-size:.75rem;pointer-events:none;display:none;z-index:1000;line-height:1.6;white-space:nowrap;';
+    document.body.appendChild(ttDiv);
+    function showTT(event, idx) {
+      ttDiv.innerHTML = '<b>' + (distData[idx] / 1000).toFixed(2) + ' km</b><br>' +
+        'Power: ' + (rawPower[idx] || 0).toFixed(0) + ' W<br>' +
+        'Speed: ' + (rawSpeed[idx] || 0).toFixed(1) + ' km/h';
+      ttDiv.style.display = 'block';
+      ttDiv.style.left = (event.clientX + 14) + 'px';
+      ttDiv.style.top  = (event.clientY - 48) + 'px';
+    }
+    function hideTT() { ttDiv.style.display = 'none'; }
+
+    function buildChart(containerId, yData, color, fillColor, yMin0) {
+      var yMin = yMin0 ? 0 : d3.min(yData) * 0.97;
+      var yMax = (d3.max(yData) || 1) * 1.1;
+      var yScale = d3.scaleLinear().domain([yMin, yMax]).range([h, 0]);
+      var data = yData.map(function(v, i) { return [distData[i], v || 0]; });
+      var svg = d3.select('#' + containerId).append('svg').attr('width', W).attr('height', H)
+        .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+      svg.append('path').datum(data).attr('fill', fillColor)
+        .attr('d', d3.area().x(function(d){ return xScale(d[0]); }).y0(h).y1(function(d){ return yScale(d[1]); }));
+      svg.append('path').datum(data).attr('fill', 'none').attr('stroke', color).attr('stroke-width', 1.5)
+        .attr('d', d3.line().x(function(d){ return xScale(d[0]); }).y(function(d){ return yScale(d[1]); }));
+      svg.append('g').attr('transform', 'translate(0,' + h + ')')
+        .call(d3.axisBottom(xScale).ticks(5).tickFormat(kmFmt))
+        .selectAll('text').style('font-size', '10px');
+      svg.append('g').call(d3.axisLeft(yScale).ticks(4))
+        .selectAll('text').style('font-size', '10px');
+      var xh = svg.append('line').attr('y1', 0).attr('y2', h)
+        .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,2').style('display', 'none');
+      var dot = svg.append('circle').attr('r', 3.5).attr('fill', color).style('display', 'none');
+      svg.append('rect').attr('width', w).attr('height', h).attr('fill', 'none').attr('pointer-events', 'all')
+        .on('mousemove', function(event) {
+          var idx = distToIdx(xScale.invert(d3.pointer(event)[0]));
+          var cx = xScale(distData[idx]);
+          xh.attr('x1', cx).attr('x2', cx).style('display', null);
+          dot.attr('cx', cx).attr('cy', yScale(yData[idx] || 0)).style('display', null);
+          showTT(event, idx);
+        })
+        .on('mouseleave', function() { xh.style('display', 'none'); dot.style('display', 'none'); hideTT(); });
+    }
+
+    buildChart('power-chart', rawPower, '#478ac9', '#e8f0f8', true);
+    buildChart('speed-chart', rawSpeed, '#9c27b0', 'rgba(156,39,176,0.12)', true);
+
+    // Elevation chart with peucker overlay + hover
+    (function() {
+      var elevMargin = {top: 8, right: 16, bottom: 30, left: 46};
+      var elevH = 100;
+      var ew = W - elevMargin.left - elevMargin.right;
+      var eh = elevH - elevMargin.top - elevMargin.bottom;
+      var elevXMax = elevProfile.length ? elevProfile[elevProfile.length-1][0] : 1;
+      var elevXScale = d3.scaleLinear().domain([0, elevXMax]).range([0, ew]);
+      var yMin = d3.min(elevProfile, function(d){ return d[1]; });
+      var yMax = d3.max(elevProfile, function(d){ return d[1]; });
+      var yScale = d3.scaleLinear().domain([yMin - 10, yMax + 10]).range([eh, 0]);
+
+      var svg = d3.select('#elev-chart').append('svg').attr('width', W).attr('height', elevH)
+        .append('g').attr('transform', 'translate(' + elevMargin.left + ',' + elevMargin.top + ')');
+
+      svg.append('path').datum(elevProfile).attr('fill', '#e8f0f8').attr('stroke', '#478ac9').attr('stroke-width', 1.5)
+        .attr('d', d3.area().x(function(d){ return elevXScale(d[0]); }).y0(eh).y1(function(d){ return yScale(d[1]); }));
+
+      if (borderDistances && borderDistances.length >= 2) {
+        function interpElev(prof, d_target) {
+          for (var k = 0; k < prof.length - 1; k++) {
+            if (prof[k][0] <= d_target && prof[k+1][0] >= d_target) {
+              var frac = (d_target - prof[k][0]) / (prof[k+1][0] - prof[k][0]);
+              return prof[k][1] + frac * (prof[k+1][1] - prof[k][1]);
+            }
+          }
+          return prof[prof.length-1][1];
+        }
+        var pdPts = borderDistances.map(function(d) { return [d, interpElev(elevProfile, d)]; });
+        svg.append('path').datum(pdPts).attr('fill', 'none').attr('stroke', '#e07b39').attr('stroke-width', 2)
+          .attr('d', d3.line().x(function(p){ return elevXScale(p[0]); }).y(function(p){ return yScale(p[1]); }));
+      }
+
+      svg.append('g').attr('transform', 'translate(0,' + eh + ')')
+        .call(d3.axisBottom(elevXScale).ticks(5).tickFormat(function(d){ return (d/1000).toFixed(2) + 'km'; }))
+        .selectAll('text').style('font-size', '10px');
+      svg.append('g').call(d3.axisLeft(yScale).ticks(4).tickFormat(function(d){ return d + 'm'; }))
+        .selectAll('text').style('font-size', '10px');
+
+      var elevBisect = d3.bisector(function(d) { return d[0]; }).left;
+      var xh = svg.append('line').attr('y1', 0).attr('y2', eh)
+        .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,2').style('display', 'none');
+      var dot = svg.append('circle').attr('r', 3.5).attr('fill', '#478ac9').style('display', 'none');
+      svg.append('rect').attr('width', ew).attr('height', eh).attr('fill', 'none').attr('pointer-events', 'all')
+        .on('mousemove', function(event) {
+          var d = elevXScale.invert(d3.pointer(event)[0]);
+          var ei = Math.min(Math.max(elevBisect(elevProfile, d), 0), elevProfile.length - 1);
+          var cx = elevXScale(elevProfile[ei][0]);
+          xh.attr('x1', cx).attr('x2', cx).style('display', null);
+          dot.attr('cx', cx).attr('cy', yScale(elevProfile[ei][1])).style('display', null);
+          ttDiv.innerHTML = '<b>' + (elevProfile[ei][0] / 1000).toFixed(2) + ' km</b><br>Elev: ' + elevProfile[ei][1].toFixed(0) + ' m';
+          ttDiv.style.display = 'block';
+          ttDiv.style.left = (event.clientX + 14) + 'px';
+          ttDiv.style.top  = (event.clientY - 48) + 'px';
+        })
+        .on('mouseleave', function() { xh.style('display', 'none'); dot.style('display', 'none'); hideTT(); });
+    })();
+  </script>
+
+</body>
+</html>

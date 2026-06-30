@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html style="font-size: 16px;" lang="en"><head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <title>History</title>
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; margin: 0; color: #333; }
+
+        /* Minimal right-justified nav */
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 28px 12px 28px;
+        }
+        .filter-bar input {
+            padding: 7px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            width: 220px;
+        }
+        .filter-bar input:focus { outline: none; border-color: #478ac9; }
+        .filter-label { font-size: 0.8rem; color: #888; }
+
+        /* Table */
+        .page-content { padding: 0 28px 28px 28px; }
+        .section-wrapper { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            background: #fff;
+        }
+        .data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+        .activity-row:hover td { background: #f9fbff; }
+        .no-data td { color: #aaa; text-align: center; padding: 24px; }
+
+        /* Inline subtable row */
+        .segments-row { display: none; }
+        .segments-row td { padding: 0; border-bottom: 1px solid #e8e8e8; background: #f8fafc; }
+        .segments-inner {
+            padding: 10px 14px 10px 40px;
+        }
+        .segments-list {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .segments-list th {
+            text-align: left;
+            padding: 5px 10px;
+            color: #444;
+            font-weight: 700;
+            border-bottom: 2px solid #c8d0dc;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .segments-list td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #dde2e8;
+            color: #222;
+        }
+        .segments-list tr:last-child td { border-bottom: none; }
+        .segments-list tbody tr { cursor: pointer; }
+        .segments-list tbody tr:hover td { background: #edf2fa; }
+        .no-segs-msg { color: #bbb; font-size: 0.8rem; padding: 8px 0; }
+
+        /* Clickable activity rows */
+        .activity-row { cursor: pointer; }
+
+        /* Action buttons */
+        .btn-action {
+            border: none;
+            border-radius: 4px;
+            padding: 5px 11px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-right: 4px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        /* Subtle text-style action links */
+        .txt-btn {
+            background: none;
+            border: none;
+            padding: 2px 4px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            color: #888;
+            text-decoration: none;
+            display: inline-block;
+            transition: color 0.15s;
+        }
+        .txt-btn:hover { color: #333; }
+        .txt-btn.segments { color: #1a7340; }
+        .txt-btn.segments:hover { color: #145a30; }
+        .txt-btn.segments.open { font-weight: 700; }
+        .txt-btn.danger { color: #b71c1c; }
+        .txt-btn.danger:hover { color: #7f0000; }
+        .btn-segments.open { background: #c3e6cb; }
+        .btn-danger   { background: #fdecea; color: #b71c1c; }
+        .btn-danger:hover { background: #ffcdd2; }
+
+        /* Modal (rename + delete) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 24px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            z-index: 1000;
+            min-width: 340px;
+        }
+        .modal h3 { margin: 0 0 14px 0; font-size: 1rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 999; }
+        .modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px; }
+        .btn-close   { background: #f0f0f0; color: #555; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
+        .btn-close:hover { background: #e0e0e0; }
+        .btn-submit  { background: #478ac9; color: #fff; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
+        .btn-submit:hover { background: #2f6fa8; }
+        .btn-delete-icon { background: none; border: none; padding: 0; cursor: pointer; }
+        .btn-delete-icon img { width: 20px; height: 20px; }
+        .rename-input { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; margin-top: 6px; }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='nicepage.css')}}" media="screen">
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,300i,400,400i,700,700i|Open+Sans:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i">
+    <meta name="theme-color" content="#478ac9">
+    <meta property="og:title" content="History">
+    <meta property="og:type" content="website">
+    <meta data-intl-tel-input-cdn-path="intlTelInput/">
+</head>
+<body data-path-to-root="./" data-include-products="false" class="u-body u-xl-mode" data-lang="en">
+
+  <nav class="top-nav">
+    {%for page in page_permissions[role()]%}
+    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+    {%endfor%}
+  </nav>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <input type="text" id="activity-search" placeholder="Search by title..." oninput="filterActivities()">
+  </div>
+
+  <div class="page-content">
+    <div class="section-wrapper">
+      <table class="data-table">
+        {%if data!=[]%}
+        <tbody>
+          {%for row in data%}
+          {%set act_id = row[0]%}
+
+          <!-- Activity row (clickable to open) -->
+          {% set act_url = '/visualise?q=' + encode_q(0, row[1], user|string + ',' + row[0]|string) %}
+          <tr class="activity-row" data-title="{{ row[2]|lower }}" onclick="window.location='{{act_url}}'">
+            <td>{{row[2]}}</td>
+            <td>{{row[3]}}</td>
+            <td>{{row[4]}}</td>
+            <td onclick="event.stopPropagation()">
+              <button class="txt-btn segments" id="vsBtn_{{act_id}}" onclick="toggleSegments({{act_id}})">Segments ▾</button>
+            </td>
+            <td style="text-align:right; white-space:nowrap;" onclick="event.stopPropagation()">
+              <button class="txt-btn" onclick="openModal('rename_{{act_id}}', 'overlay_rename_{{act_id}}')">Rename</button>
+              <button class="txt-btn danger" onclick="openModal('delete_{{act_id}}', 'overlay_delete_{{act_id}}')">Delete</button>
+            </td>
+          </tr>
+
+          <!-- Inline segments subtable row (TASK-011.4) -->
+          <tr class="segments-row" id="segs_{{act_id}}">
+            <td colspan="5">
+              <div class="segments-inner">
+                {%set segs = segments_by_activity[act_id]%}
+                {%if segs%}
+                <table class="segments-list">
+                  <thead>
+                    <tr><th>Title</th><th>CdA</th><th>Comment</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {%for seg in segs%}
+                    {%set seg_id = seg[0]%}
+                    {%set seg_cda_data = seg[4]%}
+                    {%set vseg_url = '/view_segment?q=' + encode_q(0, 0, user|string + ',' + seg_id|string)%}
+                    <tr onclick="window.location.href='{{vseg_url}}'">
+                      <td>{{seg[1]}}</td>
+                      <td>
+                        {%if seg_cda_data and seg_cda_data != 'null'%}
+                          {%set sections = seg_cda_data|fromjson%}
+                          {%if sections|length > 1%}
+                            {%for s in sections%}<span title="Grade {{s.grade}}% · {{s.speed}} km/h · {{s.power|int}}W · {{s.distance|int}}m">{{s.cda}}</span>{%if not loop.last%} / {%endif%}{%endfor%}
+                          {%else%}
+                            {{seg[2]}}
+                          {%endif%}
+                        {%else%}
+                          {{seg[2]}}
+                        {%endif%}
+                      </td>
+                      <td>{{seg[3]}}</td>
+                      <td style="white-space:nowrap; text-align:right;" onclick="event.stopPropagation()">
+                        <button class="txt-btn danger" onclick="openModal('seg_del_{{seg_id}}', 'seg_overlay_del_{{seg_id}}')">Delete</button>
+                      </td>
+                    </tr>
+
+                    <!-- Segment delete modal -->
+                    <div id="seg_del_{{seg_id}}" class="modal">
+                      <h3>Delete Segment</h3>
+                      <p style="font-size:0.9rem;color:#555;">Delete <strong>{{seg[1]}}</strong>?</p>
+                      <div class="modal-actions">
+                        <button class="btn-close" onclick="closeModal('seg_del_{{seg_id}}', 'seg_overlay_del_{{seg_id}}')">Cancel</button>
+                        <form method="POST" action="/delete_segment">
+                          <input type="hidden" name="supression" value="{{seg_id}}">
+                          <input type="hidden" name="from_history" value="1">
+                          <button class="btn-submit" style="background:#b71c1c;" type="submit">Delete</button>
+                        </form>
+                      </div>
+                    </div>
+                    <div id="seg_overlay_del_{{seg_id}}" class="overlay" onclick="closeModal('seg_del_{{seg_id}}', 'seg_overlay_del_{{seg_id}}')"></div>
+
+                    {%endfor%}
+                  </tbody>
+                </table>
+                {%else%}
+                <p class="no-segs-msg">No segments saved for this activity.</p>
+                {%endif%}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Rename modal -->
+          <div id="rename_{{act_id}}" class="modal">
+            <h3>Rename Activity</h3>
+            <form method="POST" action="/rename_activity">
+              <input type="hidden" name="id_analysis" value="{{act_id}}">
+              <input class="rename-input" type="text" name="new_title" value="{{row[2]}}" placeholder="New name" required>
+              <div class="modal-actions">
+                <button type="button" class="btn-close" onclick="closeModal('rename_{{act_id}}', 'overlay_rename_{{act_id}}')">Cancel</button>
+                <button type="submit" class="btn-submit">Save</button>
+              </div>
+            </form>
+          </div>
+          <div id="overlay_rename_{{act_id}}" class="overlay" onclick="closeModal('rename_{{act_id}}', 'overlay_rename_{{act_id}}')"></div>
+
+          <!-- Delete modal -->
+          <div id="delete_{{act_id}}" class="modal">
+            <h3>Delete Activity</h3>
+            <p style="font-size:0.9rem;color:#555;">Delete <strong>{{row[2]}}</strong>?</p>
+            <div class="modal-actions">
+              <button class="btn-close" onclick="closeModal('delete_{{act_id}}', 'overlay_delete_{{act_id}}')">Cancel</button>
+              <form method="POST" action="/delete_file">
+                <input type="hidden" name="supression" value="{{act_id}}">
+                <button class="btn-delete-icon" type="submit"><img src="/static/bin.png" alt="Delete"></button>
+              </form>
+            </div>
+          </div>
+          <div id="overlay_delete_{{act_id}}" class="overlay" onclick="closeModal('delete_{{act_id}}', 'overlay_delete_{{act_id}}')"></div>
+
+          {%endfor%}
+        </tbody>
+        {%else%}
+        <tbody><tr class="no-data"><td colspan="5">No activities yet.</td></tr></tbody>
+        {%endif%}
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function openModal(modalId, overlayId) {
+      document.getElementById(modalId).style.display = 'block';
+      document.getElementById(overlayId).style.display = 'block';
+    }
+    function closeModal(modalId, overlayId) {
+      document.getElementById(modalId).style.display = 'none';
+      document.getElementById(overlayId).style.display = 'none';
+    }
+
+    function toggleSegments(actId) {
+      var row = document.getElementById('segs_' + actId);
+      var btn = document.getElementById('vsBtn_' + actId);
+      var visible = row.style.display === 'table-row';
+      row.style.display = visible ? 'none' : 'table-row';
+      btn.classList.toggle('open', !visible);
+    }
+
+    function filterActivities() {
+      var query = document.getElementById('activity-search').value.toLowerCase();
+      var rows = document.querySelectorAll('.activity-row');
+      rows.forEach(function(row) {
+        var title = row.getAttribute('data-title') || '';
+        var actId = row.querySelector('[id^="vsBtn_"]').id.replace('vsBtn_', '');
+        var show = title.includes(query);
+        row.style.display = show ? '' : 'none';
+        document.getElementById('segs_' + actId).style.display = 'none';
+        if (show === false) document.getElementById('vsBtn_' + actId).classList.remove('open');
+      });
+    }
+  </script>
+
+</body></html>

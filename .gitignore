@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local databases & user uploads (runtime data, not source)
+*.db
+data/uploads/*
+!data/uploads/.gitkeep
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+
+# Tooling / scratch
+.pytest_cache/

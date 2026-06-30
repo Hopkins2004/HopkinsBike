@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(/Users/sachaarroues-paykin/Documents/claude/hopkins/progress.md:*)",
+      "Bash(pip3 list:*)",
+      "Bash(cd *)",
+      "Bash(.venv/bin/python -c \"import playwright; print\\('playwright python OK'\\)\")",
+      "Bash(.venv/bin/python -c \"import selenium; print\\('selenium OK', selenium.__version__\\)\")",
+      "Bash(npm ls *)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/playwright install *)",
+      "Bash(.venv/bin/python -c \"import playwright; print\\('import OK'\\)\")",
+      "Bash(grep -iE \"\\\\.fit$|\\\\.gpx$\")",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python \"/private/tmp/claude-501/-Users-sachaarroues-paykin-Documents-claude-hopkins/d646059b-4723-4ba2-8ad0-21fe8ot691/scratchpad/e2e.py\")",
+      "Bash(.venv/bin/python -m py_compile app.py)"
+    ]
+  }
+}

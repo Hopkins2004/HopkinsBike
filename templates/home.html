@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hopkins</title>
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            min-height: 100vh;
+            background: url('/static/windtunnel.png') center center / cover no-repeat;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Subtle dark overlay so text is readable */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.38);
+            z-index: 0;
+        }
+
+        nav {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 18px 32px;
+        }
+
+        nav a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            margin-left: 28px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid transparent;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        nav a:hover { color: #fff; border-bottom-color: rgba(255,255,255,0.6); }
+
+        .hero {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .hero h1 {
+            color: #fff;
+            font-size: 2.6rem;
+            font-weight: 300;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.95rem;
+            font-weight: 300;
+            letter-spacing: 0.04em;
+            margin-bottom: 40px;
+        }
+
+        .cta-group { display: flex; gap: 14px; }
+
+        .btn-cta {
+            padding: 11px 32px;
+            border-radius: 2px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-decoration: none;
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-primary {
+            background: #fff;
+            color: #222;
+        }
+        .btn-primary:hover { background: #e8e8e8; }
+        .btn-secondary {
+            background: transparent;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+
+        /* Lower info section */
+        .info-section {
+            position: relative;
+            z-index: 1;
+            background: rgba(10, 10, 10, 0.72);
+            backdrop-filter: blur(4px);
+            padding: 40px 60px;
+            display: flex;
+            gap: 60px;
+            flex-wrap: wrap;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .info-col {
+            flex: 1;
+            min-width: 160px;
+        }
+        .info-col h4 {
+            color: rgba(255,255,255,0.45);
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        .info-col p, .info-col a {
+            display: block;
+            color: rgba(255,255,255,0.65);
+            font-size: 0.82rem;
+            font-weight: 300;
+            line-height: 2;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+        .info-col a:hover { color: #fff; }
+    </style>
+</head>
+<body>
+    <nav>
+        {%for page in page_permissions[role]%}
+        <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+        {%endfor%}
+    </nav>
+
+    <div class="hero">
+        <h1>Hopkins</h1>
+        <p>Aerodynamic analysis from your ride data</p>
+        <div class="cta-group">
+            <a href="/login" class="btn-cta btn-primary">Log in</a>
+            <a href="/register" class="btn-cta btn-secondary">Register</a>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-col">
+            <h4>Hopkins</h4>
+            <p>Aerodynamic testing platform</p>
+            <p>Built for cyclists</p>
+            <p>&copy; 2025 Hopkins</p>
+        </div>
+        <div class="info-col">
+            <h4>Product</h4>
+            <a href="/register">Get started</a>
+            <a href="/how-it-works">How it works</a>
+            <a href="/whitepaper">Whitepaper</a>
+        </div>
+        <div class="info-col">
+            <h4>Useful links</h4>
+            <a href="#">Documentation</a>
+            <a href="#">FAQ</a>
+            <a href="#">Changelog</a>
+        </div>
+        <div class="info-col">
+            <h4>Contact</h4>
+            <a href="#">hello@hopkins.cc</a>
+            <a href="#">GitHub</a>
+        </div>
+    </div>
+</body>
+</html>

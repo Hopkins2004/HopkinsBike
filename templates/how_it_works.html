@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How it works — Hopkins</title>
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; color: #333; }
+
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        .page-content {
+            max-width: 820px;
+            margin: 48px auto;
+            padding: 0 24px 64px;
+        }
+
+        .page-title {
+            font-size: 1.7rem;
+            font-weight: 300;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #222;
+            margin-bottom: 8px;
+        }
+        .page-subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            font-weight: 300;
+            margin-bottom: 48px;
+            border-bottom: 1px solid #e8e8e8;
+            padding-bottom: 24px;
+        }
+
+        .section {
+            margin-bottom: 48px;
+        }
+        .section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #478ac9;
+            margin-bottom: 16px;
+        }
+        .section h2 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #222;
+            margin-bottom: 12px;
+        }
+        .section p {
+            font-size: 0.9rem;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 12px;
+        }
+
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .step-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 22px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-top: 3px solid #478ac9;
+        }
+        .step-number {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #478ac9;
+            margin-bottom: 8px;
+        }
+        .step-card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #222;
+            margin-bottom: 8px;
+        }
+        .step-card p {
+            font-size: 0.83rem;
+            line-height: 1.65;
+            color: #666;
+        }
+
+        .info-box {
+            background: #fff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-top: 20px;
+        }
+        .info-box p {
+            font-size: 0.88rem;
+            line-height: 1.75;
+            color: #555;
+        }
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 12px;
+        }
+        .info-box ul li {
+            font-size: 0.88rem;
+            line-height: 1.75;
+            color: #555;
+            padding-left: 16px;
+            position: relative;
+            margin-bottom: 4px;
+        }
+        .info-box ul li::before {
+            content: '—';
+            position: absolute;
+            left: 0;
+            color: #478ac9;
+        }
+
+        .formula-box {
+            background: #f0f4f8;
+            border-left: 3px solid #478ac9;
+            border-radius: 4px;
+            padding: 14px 18px;
+            margin: 16px 0;
+            font-size: 0.88rem;
+            font-family: monospace;
+            color: #333;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #e8e8e8;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        {%for page in page_permissions[role()]%}
+        <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+        {%endfor%}
+        <a href="/home">Home</a>
+    </nav>
+
+    <div class="page-content">
+        <h1 class="page-title">How it works</h1>
+        <p class="page-subtitle">From raw ride data to aerodynamic coefficient — the full pipeline explained.</p>
+
+        <!-- Overview -->
+        <div class="section">
+            <div class="section-title">Overview</div>
+            <p>Hopkins takes a recorded cycling activity in FIT format, extracts power, speed, and GPS data, and computes an aerodynamic drag coefficient (CdA) for any section of the ride you select. The result tells you how aerodynamic you were during that segment.</p>
+            <p>The process requires no wind tunnel — just your power meter, GPS, and a flat or known-grade road.</p>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Step by step -->
+        <div class="section">
+            <div class="section-title">Step by step</div>
+            <div class="step-grid">
+                <div class="step-card">
+                    <div class="step-number">Step 1</div>
+                    <h3>Upload a FIT file</h3>
+                    <p>Your cycling computer records a binary FIT file containing timestamped records — one per second — of power, speed, altitude, heart rate, cadence, and GPS coordinates.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">Step 2</div>
+                    <h3>Parse &amp; extract data points</h3>
+                    <p>Hopkins reads every record, converts GPS coordinates from semicircles to degrees, and discards corrupt points. The result is a clean time-series of <em>fitpoints</em>.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">Step 3</div>
+                    <h3>Build micro-segments</h3>
+                    <p>Consecutive fitpoints are paired into one-second micro-segments, each with a speed, elevation change, distance, and average power.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">Step 4</div>
+                    <h3>Aggregate into analysis segments</h3>
+                    <p>Micro-segments are grouped into longer aggregates (typically 20 seconds) using time-weighted averages, smoothing out noise while preserving grade and power variations.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">Step 5</div>
+                    <h3>Select a section</h3>
+                    <p>On the activity chart, brush-select a portion of the ride — a lap, a flat section, a specific road. Hopkins zooms in to that window.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">Step 6</div>
+                    <h3>Enter rider parameters</h3>
+                    <p>Provide total system weight (rider + bike), rolling resistance coefficient (Crr), and drivetrain efficiency. Hopkins then solves for CdA using the power balance equation.</p>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- FIT parsing detail -->
+        <div class="section">
+            <div class="section-title">Data extraction</div>
+            <h2>What the FIT file contains</h2>
+            <p>Each second of your ride is stored as a <strong>record</strong> message inside the FIT file. Hopkins extracts the following fields per point:</p>
+            <div class="info-box">
+                <ul>
+                    <li><strong>timestamp</strong> — absolute UTC time, used to align laps and compute segment duration</li>
+                    <li><strong>distance</strong> — cumulative distance in metres from the device</li>
+                    <li><strong>speed</strong> — instantaneous speed in m/s</li>
+                    <li><strong>power</strong> — instantaneous power in watts (0 if no power meter)</li>
+                    <li><strong>altitude</strong> — barometric altitude in metres</li>
+                    <li><strong>heart_rate</strong> — beats per minute</li>
+                    <li><strong>cadence</strong> — pedal revolutions per minute</li>
+                    <li><strong>position_lat / position_long</strong> — GPS in semicircles, divided by 11,930,465 to obtain decimal degrees</li>
+                </ul>
+            </div>
+            <p style="margin-top:16px;">Lap boundaries are extracted from <strong>lap</strong> messages and shown as clickable bands above the power chart, letting you jump directly to any lap for analysis.</p>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Segment aggregation -->
+        <div class="section">
+            <div class="section-title">Segment processing</div>
+            <h2>From raw points to analysable segments</h2>
+            <p>Raw FIT data is noisy — power spikes, GPS jitter, and momentary coasting all interfere with a clean CdA estimate. Hopkins applies two stages of processing:</p>
+            <div class="info-box">
+                <ul>
+                    <li><strong>Micro-segments (1 s)</strong> — each consecutive pair of fitpoints forms a micro-segment. Grade is computed as altitude change divided by distance. Speed is taken directly from the device.</li>
+                    <li><strong>Aggregated segments (20 s)</strong> — groups of 20 micro-segments are merged. Power, HR, and cadence are time-weighted averages; distance and altitude are summed. This removes second-by-second noise without losing trend information.</li>
+                    <li><strong>Speed filter</strong> — segments where average speed is below 2 m/s (7 km/h) are excluded from CdA calculation to avoid coasting artifacts.</li>
+                </ul>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- CdA section -->
+        <div class="section">
+            <div class="section-title">Aerodynamic analysis</div>
+            <h2>Computing CdA from power data</h2>
+            <p>Once a segment is selected, Hopkins applies a power balance equation. At any speed, the total mechanical power output from the rider must equal the sum of aerodynamic drag power, rolling resistance power, and gravitational power:</p>
+            <div class="formula-box">P_effective = P_aero + P_rolling + P_gravity</div>
+            <p>Rearranging to isolate the aerodynamic term and solving for CdA:</p>
+            <div class="formula-box">CdA = 2 × (P × η − m·g·v·Crr − m·g·v·(grade/100)) / (ρ · v³)</div>
+            <p>Where:</p>
+            <div class="info-box">
+                <ul>
+                    <li><strong>P</strong> — average power output (W)</li>
+                    <li><strong>η</strong> — drivetrain efficiency (typically 0.97–1.0)</li>
+                    <li><strong>m</strong> — total system mass in kg (rider + bike + kit)</li>
+                    <li><strong>g</strong> — 9.81 m/s²</li>
+                    <li><strong>v</strong> — average speed (m/s)</li>
+                    <li><strong>Crr</strong> — rolling resistance coefficient (typically 0.003–0.005 for road tyres)</li>
+                    <li><strong>grade</strong> — average road gradient in % (positive = uphill)</li>
+                    <li><strong>ρ</strong> — air density, assumed 1.2 kg/m³ at standard conditions</li>
+                </ul>
+            </div>
+            <p style="margin-top:16px;">The result is expressed in m². A typical road cyclist in an upright position measures around 0.35–0.40 m²; a time-trial position can reach 0.20–0.26 m².</p>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Tips -->
+        <div class="section">
+            <div class="section-title">Getting accurate results</div>
+            <h2>Best conditions for testing</h2>
+            <div class="info-box">
+                <ul>
+                    <li>Choose a flat, straight section of road — grade compensation is applied, but inaccurate GPS altitude introduces error.</li>
+                    <li>Ride at a steady speed (minimal acceleration). Power spikes from surges inflate the apparent CdA.</li>
+                    <li>Avoid wind or record in both directions and average — wind is the largest source of error since it is not measured.</li>
+                    <li>Use calibrated power meter and accurate total weight.</li>
+                    <li>Segments of 30 seconds or more give more stable averages than very short bursts.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

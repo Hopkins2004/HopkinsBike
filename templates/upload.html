@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html style="font-size: 16px;" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <title>Upload</title>
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; margin: 0; color: #333; }
+
+        /* Minimal right-justified nav */
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        /* Upload card */
+        .page-content {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 48px 20px;
+        }
+        .upload-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+            padding: 40px 48px;
+            width: 100%;
+            max-width: 480px;
+        }
+        .upload-card h2 {
+            margin: 0 0 6px 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #222;
+        }
+        .upload-card p {
+            margin: 0 0 28px 0;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed #c8d8ea;
+            border-radius: 8px;
+            padding: 36px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            background: #f8fafc;
+            margin-bottom: 20px;
+        }
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #478ac9;
+            background: #eef4fb;
+        }
+        .drop-zone input[type="file"] {
+            display: none;
+        }
+        .drop-icon {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            color: #b0c4d8;
+        }
+        .drop-zone-label {
+            font-size: 0.88rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        .drop-zone-label strong {
+            color: #478ac9;
+            cursor: pointer;
+        }
+        .drop-zone-hint {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+        .file-chosen {
+            font-size: 0.82rem;
+            color: #478ac9;
+            margin-top: 8px;
+            min-height: 18px;
+        }
+
+        /* Submit button */
+        .btn-upload {
+            width: 100%;
+            background: #478ac9;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 11px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-upload:hover { background: #2f6fa8; }
+        .btn-upload:disabled { background: #b0c8e0; cursor: default; }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='nicepage.css')}}" media="screen">
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Roboto+Condensed:300,400,700">
+    <meta name="theme-color" content="#478ac9">
+    <meta property="og:title" content="Upload">
+    <meta property="og:type" content="website">
+    <meta data-intl-tel-input-cdn-path="intlTelInput/">
+</head>
+<body data-path-to-root="./" data-include-products="false" class="u-body u-xl-mode" data-lang="en">
+
+  <nav class="top-nav">
+    {%for page in page_permissions[role()]%}
+    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+    {%endfor%}
+  </nav>
+
+  <div class="page-content">
+    <div class="upload-card">
+      <h2>Upload Activity</h2>
+      <p>Supports .fit and .gpx files</p>
+
+      <form method="POST" action="/upload" enctype="multipart/form-data" id="upload-form">
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file').click()">
+          <div class="drop-icon">&#8679;</div>
+          <div class="drop-zone-label">Drag &amp; drop your file here, or <strong>browse</strong></div>
+          <div class="drop-zone-hint">.fit &nbsp;·&nbsp; .gpx</div>
+          <div class="file-chosen" id="file-chosen"></div>
+          <input type="file" id="file" name="file" accept=".fit,.gpx" onchange="onFileChosen(this)">
+        </div>
+        <button class="btn-upload" id="upload-btn" type="submit" disabled>Upload</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    var dropZone = document.getElementById('drop-zone');
+    var fileInput = document.getElementById('file');
+    var uploadBtn = document.getElementById('upload-btn');
+    var fileChosen = document.getElementById('file-chosen');
+
+    function onFileChosen(input) {
+      if (input.files && input.files[0]) {
+        fileChosen.textContent = input.files[0].name;
+        uploadBtn.disabled = false;
+      } else {
+        fileChosen.textContent = '';
+        uploadBtn.disabled = true;
+      }
+    }
+
+    dropZone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', function() {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      var files = e.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        onFileChosen(fileInput);
+      }
+    });
+  </script>
+
+</body>
+</html>

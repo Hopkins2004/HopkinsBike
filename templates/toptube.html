@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Top Tube — {{title}}</title>
+  <style>
+    @page { size: 60mm 200mm; margin: 3mm; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #fff;
+    }
+
+    .card {
+      width: 54mm;
+      min-height: 194mm;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      border-bottom: 0.5mm solid #333;
+      padding-bottom: 1.5mm;
+      margin-bottom: 2mm;
+    }
+
+    .route-title {
+      font-size: 7pt;
+      font-weight: bold;
+      color: #222;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .totals { font-size: 6.5pt; color: #444; margin-top: 1mm; }
+    .totals span { margin-right: 2.5mm; }
+
+    .sections {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5mm;
+      flex: 1;
+    }
+
+    .section {
+      border: 0.4mm solid #bbb;
+      border-radius: 0.8mm;
+      padding: 1.2mm 1.5mm;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 2mm;
+    }
+
+    .section.grade-up   { border-color: #c0392b; background: #fff5f5; }
+    .section.grade-flat { border-color: #888;    background: #f8f8f8; }
+    .section.grade-down { border-color: #27ae60; background: #f0fff4; }
+
+    .sec-dist  { flex: 1.5; font-size: 5.5pt; color: #777; white-space: nowrap; }
+    .sec-power { flex: 1; font-size: 9pt; font-weight: bold; color: #222; white-space: nowrap; }
+    .sec-grade { flex: 0.8; font-size: 7pt; font-weight: bold; white-space: nowrap; }
+    .sec-time  { flex: 1; font-size: 6pt; color: #555; white-space: nowrap; }
+
+    .grade-up   .sec-grade { color: #c0392b; }
+    .grade-flat .sec-grade { color: #555; }
+    .grade-down .sec-grade { color: #27ae60; }
+
+    @media screen {
+      body { padding: 8mm; background: #eee; }
+      .card {
+        background: #fff;
+        padding: 3mm;
+        border: 1px solid #ccc;
+        margin: 0 auto;
+        box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      }
+      .print-hint {
+        text-align: center;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 8px;
+      }
+    }
+
+    @media print {
+      .print-hint { display: none; }
+      .card { border: none; padding: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <p class="print-hint">Print (Ctrl+P) — select paper 60×200mm or cut to fit.</p>
+  <div class="card">
+    <div class="header">
+      <div class="route-title">{{title}}</div>
+      <div class="totals">
+        <span>{{total_dist}} km</span>
+        <span>{{time_str}}</span>
+        <span>NP {{total_np|int}} W</span>
+      </div>
+    </div>
+    <div class="sections">
+      {% for s in section_data %}
+      {% if s.grade > 1 %}{% set cls = 'grade-up' %}
+      {% elif s.grade < -1 %}{% set cls = 'grade-down' %}
+      {% else %}{% set cls = 'grade-flat' %}{% endif %}
+      <div class="section {{cls}}">
+        <span class="sec-dist">{{s.cum_dist_start}}–{{s.cum_dist_end}} km</span>
+        <span class="sec-power">{{s.power|int}} W</span>
+        <span class="sec-grade">{{s.grade}}%</span>
+        <span class="sec-time">{{s.time_str}}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <script>window.print();</script>
+</body>
+</html>

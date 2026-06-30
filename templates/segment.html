@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Segment</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,300i,400,400i,700,700i|Open+Sans:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i">
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; margin: 0; color: #333; }
+
+        /* Minimal right-justified nav */
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        /* Main layout */
+        #top-row {
+            display: flex;
+            gap: 16px;
+            padding: 16px 20px 0 20px;
+            align-items: flex-start;
+        }
+
+        #map {
+            flex: 1 1 60%;
+            height: 380px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        /* Rider info panel (TASK-010) */
+        #rider-panel {
+            flex: 0 0 260px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            padding: 18px 20px;
+        }
+        #rider-panel h3 {
+            margin: 0 0 14px 0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #555;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+        .rider-field {
+            margin-bottom: 12px;
+        }
+        .rider-field label {
+            display: block;
+            font-size: 0.78rem;
+            color: #888;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .rider-field input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+        }
+        .rider-field input:focus { outline: none; border-color: #478ac9; }
+
+        .phint {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            line-height: 14px;
+            text-align: center;
+            background: #e0eaf5;
+            color: #478ac9;
+            border-radius: 50%;
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: default;
+            margin-left: 4px;
+            position: relative;
+            vertical-align: middle;
+        }
+        .phint::after {
+            content: attr(data-hint);
+            display: none;
+            position: absolute;
+            right: 20px;
+            left: auto;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #333;
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            padding: 6px 9px;
+            border-radius: 5px;
+            white-space: normal;
+            width: 210px;
+            z-index: 100;
+            line-height: 1.4;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+        .phint:hover::after { display: block; }
+
+        .btn-calculate {
+            width: 100%;
+            background: #478ac9;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .btn-calculate:hover { background: #2f6fa8; }
+
+        /* Charts (TASK-008) */
+        #charts-container {
+            padding: 0 20px 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chart-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 6px 10px 4px 10px;
+        }
+        .chart-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .chart-card svg { display: block; }
+
+        .grid line { stroke: #f0f0f0; stroke-width: 1; }
+        .grid path { stroke: none; }
+        .axis text { font-size: 0.72rem; fill: #999; }
+        .axis path, .axis line { stroke: #e0e0e0; }
+
+        .lap-bar { display: block; margin-bottom: 2px; }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='nicepage.css')}}" media="screen">
+    <meta name="generator" content="Nicepage 5.21.10, nicepage.com">
+    <meta name="theme-color" content="#478ac9">
+</head>
+<body data-path-to-root="./" data-include-products="false" class="u-body u-xl-mode" data-lang="en">
+
+  <nav class="top-nav">
+    {%for page in page_permissions[role()]%}
+    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+    {%endfor%}
+  </nav>
+
+  <!-- Map + Rider info side by side (TASK-010) -->
+  <div id="top-row">
+    <div id="map"></div>
+    <div id="rider-panel">
+      <h3>Rider Info</h3>
+      <div class="rider-field">
+        <label for="crrInput">Crr <span class="phint" data-hint="Rolling resistance coefficient. Road race tyre (asphalt): 0.002–0.004. Training tyre: 0.004–0.006. Typical default: 0.004.">?</span></label>
+        <input type="number" id="crrInput" step="0.0001" value="0.004">
+      </div>
+      <div class="rider-field">
+        <label for="weightInput">Weight (kg) <span class="phint" data-hint="Total system weight: rider + bike + kit + water bottles. Typical road rider: 70–90 kg.">?</span></label>
+        <input type="number" id="weightInput" step="0.1" value="75">
+      </div>
+      <div class="rider-field">
+        <label for="drivetrainInput">Drivetrain efficiency <span class="phint" data-hint="Fraction of power that reaches the rear wheel. Clean road chain: 0.97–0.99. Dirty/old chain or MTB drivetrain: 0.95–0.97. Default: 0.97.">?</span></label>
+        <input type="number" id="drivetrainInput" step="0.01" value="0.97">
+      </div>
+      <button class="btn-calculate" onclick="calculate()">Calculate CdA</button>
+    </div>
+  </div>
+
+  <!-- Charts (TASK-008) -->
+  <div id="charts-container">
+    <div class="chart-card">
+      <div id="lap-bar-power" class="lap-bar"></div>
+      <div class="chart-label">Power (W)</div>
+      <div id="power-chart"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-label">Speed (km/h)</div>
+      <div id="speed-chart"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-label">Elevation (m)</div>
+      <div id="elevation-chart"></div>
+    </div>
+  </div>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0"></script>
+
+  <script>
+    var allCoords = {{data}};
+    var flightPlanCoordinates = allCoords.map(function(pair) {
+      return { lat: pair[0], lng: pair[1] };
+    });
+
+    var segStart = {{start}};
+    var segEnd   = {{end}};
+
+    let map;
+    let markers = [];
+
+    // TASK-009: auto zoom using fitBounds
+    function fitBoundsToSegment(i, j) {
+      var bounds = new google.maps.LatLngBounds();
+      flightPlanCoordinates.slice(i, j).forEach(function(latlng) {
+        bounds.extend(latlng);
+      });
+      map.fitBounds(bounds);
+    }
+
+    function draw(i, j) {
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 12,
+        center: flightPlanCoordinates[Math.floor((i + j) / 2)] || { lat: 45, lng: 0 },
+        mapTypeId: "terrain",
+      });
+      const flightPath = new google.maps.Polyline({
+        path: flightPlanCoordinates.slice(i, j),
+        geodesic: true,
+        strokeColor: "#FF0000",
+        strokeOpacity: 1.0,
+        strokeWeight: 3,
+      });
+      flightPath.setMap(map);
+      fitBoundsToSegment(i, j);
+    }
+
+    function addMarker(lat, lng) {
+      markers.forEach(function(m) { m.setMap(null); });
+      const marker = new google.maps.Marker({
+        position: { lat: lat, lng: lng },
+        map: map,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: '#FF0000',
+          fillOpacity: 1,
+          strokeWeight: 0,
+          scale: 7,
+        },
+      });
+      markers = [marker];
+    }
+
+    function initMap() {
+      draw(segStart, segEnd);
+    }
+
+    function update(i, j) {
+      draw(i, j);
+    }
+  </script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0&callback=initMap">
+  </script>
+
+  <script>
+    function encodeQ(start, end, data) {
+      var payload = JSON.stringify({s: Math.round(start), e: Math.round(end), d: String(data)});
+      return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+  </script>
+
+  <script>
+    // Charts: distance x-axis, speed chart, hover+crosshair (TASK-075/076/077)
+    var rawPower = {{power}};
+    var rawElev  = {{elevation}};
+    var rawDist  = {{distances}};
+    var rawSpeed = {{speed}};
+
+    var powerSlice = rawPower.slice(segStart, segEnd);
+    var elevSlice  = rawElev.slice(segStart, segEnd);
+    var distSlice  = rawDist.slice(segStart, segEnd);
+    var speedSlice = rawSpeed.slice(segStart, segEnd);
+
+    var d0 = distSlice.length ? distSlice[0] : 0;
+    distSlice = distSlice.map(function(d) { return d - d0; });
+
+    var powerData = powerSlice.map(function(v, i) { return { x: distSlice[i], y: v }; });
+    var elevData  = elevSlice.map(function(v, i)  { return { x: distSlice[i], y: v * 2 }; });
+    var speedData = speedSlice.map(function(v, i) { return { x: distSlice[i], y: v }; });
+
+    var bisect = d3.bisector(function(d) { return d.x; }).left;
+    function distToIdx(dist) {
+      return Math.min(Math.max(bisect(powerData, dist), 0), powerData.length - 1);
+    }
+
+    var chartW = document.getElementById('power-chart').offsetWidth || window.innerWidth - 80;
+    var chartH = 110;
+    var margin = { top: 4, right: 16, bottom: 24, left: 44 };
+    var innerW = chartW - margin.left - margin.right;
+    var innerH = chartH - margin.top - margin.bottom;
+
+    var xMax = distSlice.length ? distSlice[distSlice.length - 1] : 1;
+    var xScaleDist = d3.scaleLinear().domain([0, xMax]).range([0, innerW]);
+    var xScalePower = xScaleDist; // alias used by calculate()
+
+    function kmFmt(d) { return (d / 1000).toFixed(2) + ' km'; }
+
+    // Shared floating tooltip
+    var hoverDiv = document.createElement('div');
+    hoverDiv.style.cssText = 'position:fixed;background:rgba(33,33,33,.88);color:#fff;padding:5px 9px;border-radius:5px;font-size:.75rem;pointer-events:none;display:none;z-index:1000;line-height:1.6;white-space:nowrap;';
+    document.body.appendChild(hoverDiv);
+    function showTooltip(event, idx) {
+      if (idx < 0 || idx >= powerData.length) return;
+      hoverDiv.innerHTML =
+        '<b>' + (powerData[idx].x / 1000).toFixed(2) + ' km</b><br>' +
+        'Power: ' + powerData[idx].y.toFixed(0) + ' W<br>' +
+        'Speed: ' + speedData[idx].y.toFixed(1) + ' km/h<br>' +
+        'Elev: ' + elevData[idx].y.toFixed(0) + ' m';
+      hoverDiv.style.display = 'block';
+      hoverDiv.style.left = (event.clientX + 14) + 'px';
+      hoverDiv.style.top  = (event.clientY - 48) + 'px';
+    }
+    function hideTooltip() { hoverDiv.style.display = 'none'; }
+
+    // Helper: build a simple chart and return svg g + grey rect refs
+    function buildSimpleChart(containerId, data, color, fillColor) {
+      var yMin = d3.min(data, function(d) { return d.y; }) * 0.97;
+      var yMax = (d3.max(data, function(d) { return d.y; }) || 1) * 1.1;
+      var yScale = d3.scaleLinear().domain([yMin, yMax]).range([innerH, 0]);
+      var g = d3.select('#' + containerId).append('svg')
+        .attr('width', chartW).attr('height', chartH)
+        .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+      g.append('g').attr('class', 'grid').call(d3.axisLeft(yScale).tickSize(-innerW).tickFormat(''));
+      g.append('path').datum(data).attr('fill', fillColor)
+        .attr('d', d3.area().x(function(d) { return xScaleDist(d.x); }).y0(innerH).y1(function(d) { return yScale(d.y); }));
+      g.append('path').datum(data).attr('fill', 'none').attr('stroke', color).attr('stroke-width', 1.5)
+        .attr('d', d3.line().x(function(d) { return xScaleDist(d.x); }).y(function(d) { return yScale(d.y); }));
+      g.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + innerH + ')')
+        .call(d3.axisBottom(xScaleDist).ticks(6).tickFormat(kmFmt));
+      g.append('g').attr('class', 'axis').call(d3.axisLeft(yScale).ticks(4));
+      var gL = g.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
+      var gR = g.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
+      var xh = g.append('line').attr('y1', 0).attr('y2', innerH)
+        .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,2').style('display', 'none');
+      var dot = g.append('circle').attr('r', 3.5).attr('fill', color).style('display', 'none');
+      g.append('rect').attr('width', innerW).attr('height', innerH).attr('fill', 'none').attr('pointer-events', 'all')
+        .on('mousemove', function(event) {
+          var idx = distToIdx(xScaleDist.invert(d3.pointer(event)[0]));
+          var cx = xScaleDist(data[idx].x);
+          xh.attr('x1', cx).attr('x2', cx).style('display', null);
+          dot.attr('cx', cx).attr('cy', yScale(data[idx].y)).style('display', null);
+          var coord = allCoords[segStart + idx]; if (coord) addMarker(coord[0], coord[1]);
+          showTooltip(event, idx);
+        })
+        .on('mouseleave', function() { xh.style('display', 'none'); dot.style('display', 'none'); hideTooltip(); });
+      return { g: g, yScale: yScale, gL: gL, gR: gR };
+    }
+
+    // ---- Power chart (with brush + hover) ----
+    var yScalePower = d3.scaleLinear()
+      .domain([0, (d3.max(powerData, function(d) { return d.y; }) || 500) * 1.1])
+      .range([innerH, 0]);
+
+    var svgPower = d3.select('#power-chart').append('svg')
+      .attr('width', chartW).attr('height', chartH)
+      .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    svgPower.append('g').attr('class', 'grid').call(d3.axisLeft(yScalePower).tickSize(-innerW).tickFormat(''));
+    svgPower.append('path').datum(powerData).attr('fill', 'rgba(71,138,201,0.18)')
+      .attr('d', d3.area().x(function(d) { return xScaleDist(d.x); }).y0(innerH).y1(function(d) { return yScalePower(d.y); }));
+    svgPower.append('path').datum(powerData).attr('fill', 'none').attr('stroke', '#478ac9').attr('stroke-width', 1.5)
+      .attr('d', d3.line().x(function(d) { return xScaleDist(d.x); }).y(function(d) { return yScalePower(d.y); }));
+    svgPower.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + innerH + ')')
+      .call(d3.axisBottom(xScaleDist).ticks(6).tickFormat(kmFmt));
+    svgPower.append('g').attr('class', 'axis').call(d3.axisLeft(yScalePower).ticks(4));
+
+    var greyLeft  = svgPower.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
+    var greyRight = svgPower.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
+    var greySpeedLeft, greySpeedRight, greyElevLeft, greyElevRight;
+
+    function applySelectionOverlay(sel) {
+      var sets = [[greyLeft, greyRight], [greySpeedLeft, greySpeedRight], [greyElevLeft, greyElevRight]];
+      sets.forEach(function(pair) {
+        if (!pair[0]) return;
+        if (sel) {
+          pair[0].attr('x', 0).attr('width', sel[0]);
+          pair[1].attr('x', sel[1]).attr('width', innerW - sel[1]);
+        } else {
+          pair[0].attr('width', 0); pair[1].attr('width', 0);
+        }
+      });
+    }
+
+    var pwrXhair = svgPower.append('line').attr('y1', 0).attr('y2', innerH)
+      .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,2').style('display', 'none');
+    var pwrDot = svgPower.append('circle').attr('r', 3.5).attr('fill', '#478ac9').style('display', 'none');
+
+    var brush = d3.brushX()
+      .extent([[0, 0], [innerW, innerH]])
+      .on('brush', function(event) { applySelectionOverlay(event.selection); })
+      .on('end', function(event) {
+        if (event.selection) {
+          var range = event.selection.map(xScaleDist.invert);
+          window.location.href = '/new_segment?q=' + encodeQ(segStart + distToIdx(range[0]), segStart + distToIdx(range[1]), {{parameters}});
+        } else {
+          window.location.href = '/new_segment?q=' + encodeQ(0, {{total_length}}, {{parameters}});
+        }
+      });
+
+    svgPower.append('g').attr('class', 'brush').call(brush);
+
+    svgPower.on('mousemove', function(event) {
+      var mx = d3.pointer(event)[0];
+      if (mx < 0 || mx > innerW) return;
+      var idx = distToIdx(xScaleDist.invert(mx));
+      var cx = xScaleDist(powerData[idx].x);
+      pwrXhair.attr('x1', cx).attr('x2', cx).style('display', null);
+      pwrDot.attr('cx', cx).attr('cy', yScalePower(powerData[idx].y)).style('display', null);
+      var coord = allCoords[segStart + idx]; if (coord) addMarker(coord[0], coord[1]);
+      showTooltip(event, idx);
+    }).on('mouseleave', function() {
+      pwrXhair.style('display', 'none'); pwrDot.style('display', 'none'); hideTooltip();
+    });
+
+    // ---- Speed chart ----
+    var speedResult = buildSimpleChart('speed-chart', speedData, '#9c27b0', 'rgba(156,39,176,0.12)');
+    greySpeedLeft  = speedResult.gL;
+    greySpeedRight = speedResult.gR;
+
+    // ---- Elevation chart ----
+    var yScaleElev = d3.scaleLinear()
+      .domain([d3.min(elevData, function(d) { return d.y; }) * 0.97, (d3.max(elevData, function(d) { return d.y; }) || 1) * 1.03])
+      .range([innerH, 0]);
+
+    var svgElev = d3.select('#elevation-chart').append('svg')
+      .attr('width', chartW).attr('height', chartH)
+      .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+    svgElev.append('g').attr('class', 'grid').call(d3.axisLeft(yScaleElev).tickSize(-innerW).tickFormat(''));
+    svgElev.append('path').datum(elevData).attr('fill', 'rgba(56,142,60,0.15)')
+      .attr('d', d3.area().x(function(d) { return xScaleDist(d.x); }).y0(innerH).y1(function(d) { return yScaleElev(d.y); }));
+    svgElev.append('path').datum(elevData).attr('fill', 'none').attr('stroke', '#388e3c').attr('stroke-width', 1.5)
+      .attr('d', d3.line().x(function(d) { return xScaleDist(d.x); }).y(function(d) { return yScaleElev(d.y); }));
+    svgElev.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + innerH + ')')
+      .call(d3.axisBottom(xScaleDist).ticks(6).tickFormat(kmFmt));
+    svgElev.append('g').attr('class', 'axis').call(d3.axisLeft(yScaleElev).ticks(4));
+
+    greyElevLeft  = svgElev.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
+    greyElevRight = svgElev.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
+
+    var elevXhair = svgElev.append('line').attr('y1', 0).attr('y2', innerH)
+      .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,2').style('display', 'none');
+    var elevDot = svgElev.append('circle').attr('r', 3.5).attr('fill', '#388e3c').style('display', 'none');
+    svgElev.append('rect').attr('width', innerW).attr('height', innerH).attr('fill', 'none').attr('pointer-events', 'all')
+      .on('mousemove', function(event) {
+        var idx = distToIdx(xScaleDist.invert(d3.pointer(event)[0]));
+        var cx = xScaleDist(elevData[idx].x);
+        elevXhair.attr('x1', cx).attr('x2', cx).style('display', null);
+        elevDot.attr('cx', cx).attr('cy', yScaleElev(elevData[idx].y)).style('display', null);
+        var coord = allCoords[segStart + idx]; if (coord) addMarker(coord[0], coord[1]);
+        showTooltip(event, idx);
+      })
+      .on('mouseleave', function() { elevXhair.style('display', 'none'); elevDot.style('display', 'none'); hideTooltip(); });
+
+    // ---- Lap bars ----
+    var lapBounds = {{lap_bounds}};
+    var lapColors = ['#e8a87c', '#f5c242', '#7ecba1', '#78b4e0', '#c9a0dc', '#f28b82'];
+    var barH = 18;
+    var barSvg = d3.select('#lap-bar-power').append('svg').attr('width', chartW).attr('height', barH);
+    lapBounds.forEach(function(bound, i) {
+      var lapStart = bound[0], lapEnd = bound[1];
+      var relStart = Math.max(lapStart - segStart, 0);
+      var relEnd   = Math.min(lapEnd - segStart, powerData.length - 1);
+      if (relEnd <= 0 || relStart >= powerData.length) return;
+      var distStart = distSlice[relStart] || 0;
+      var distEnd   = distSlice[Math.min(relEnd, distSlice.length - 1)] || xMax;
+      var x0 = margin.left + xScaleDist(distStart);
+      var x1 = margin.left + xScaleDist(distEnd);
+      var w  = Math.max(x1 - x0, 2);
+      var col = lapColors[i % lapColors.length];
+      barSvg.append('rect').attr('x', x0).attr('y', 1).attr('width', w).attr('height', barH - 2)
+        .attr('fill', col).attr('rx', 3).attr('cursor', 'pointer')
+        .on('click', (function(s, e) { return function() {
+          window.location.href = '/new_segment?q=' + encodeQ(s, e, {{parameters}});
+        }; })(lapStart, lapEnd));
+      if (w > 24) {
+        barSvg.append('text').attr('x', x0 + w / 2).attr('y', barH / 2 + 4)
+          .attr('text-anchor', 'middle').attr('font-size', '0.68rem').attr('font-weight', '600')
+          .attr('fill', '#333').attr('pointer-events', 'none').text('Lap ' + (i + 1));
+      }
+    });
+  </script>
+
+  <script>
+    // TASK-010: navigate current window to /calculate (no popup)
+    function calculate() {
+      var sel = d3.brushSelection(d3.select('.brush').node());
+      var start, end;
+      if (sel) {
+        var range = sel.map(xScaleDist.invert);
+        start = segStart + distToIdx(range[0]);
+        end   = segStart + distToIdx(range[1]);
+      } else {
+        start = segStart;
+        end   = segEnd;
+      }
+      var parameters = {{parameters}};
+      var crr        = parseFloat(document.getElementById('crrInput').value);
+      var weight     = parseFloat(document.getElementById('weightInput').value);
+      var efficiency = parseFloat(document.getElementById('drivetrainInput').value);
+      parameters.push(crr);
+      parameters.push(weight);
+      parameters.push(efficiency);
+      window.location.href = '/calculate?q=' + encodeQ(start, end, parameters);
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Save Segment</title>
+    <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; margin: 0; color: #333; }
+
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 28px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .top-nav a {
+            color: #444;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-left: 24px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .top-nav a:hover { color: #478ac9; border-bottom-color: #478ac9; }
+
+        .page-content {
+            max-width: 720px;
+            margin: 32px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            margin: 0 0 18px 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #333;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        /* Summary metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        .metric-box {
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+        .metric-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #333;
+        }
+        .metric-value.cda { color: #478ac9; font-size: 1.4rem; }
+
+        /* Sections table */
+        .sections-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.84rem;
+            margin-top: 4px;
+        }
+        .sections-table th {
+            text-align: left;
+            padding: 7px 10px;
+            color: #888;
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .sections-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f5f5f5;
+            color: #444;
+        }
+        .sections-table tr:last-child td { border-bottom: none; }
+        .cda-cell { color: #478ac9; font-weight: 700; }
+
+        /* Save form */
+        .form-field { margin-bottom: 16px; }
+        .form-field label {
+            display: block;
+            font-size: 0.78rem;
+            color: #888;
+            font-weight: 600;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .form-field input,
+        .form-field textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .form-field input:focus,
+        .form-field textarea:focus { outline: none; border-color: #478ac9; }
+        .form-field textarea { resize: vertical; min-height: 70px; }
+
+        .btn-save {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 28px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-save:hover { background: #218838; }
+        .chart-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #bbb;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    {%for page in page_permissions[role()]%}
+    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
+    {%endfor%}
+  </nav>
+
+  <div class="page-content">
+
+    <!-- Summary card -->
+    <div class="card">
+      <h2>Analysis Results</h2>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-label">Representative CdA</div>
+          <div class="metric-value cda">{{rep_cda}}</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Avg Speed</div>
+          <div class="metric-value">{{avg_speed}} km/h</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Avg Power</div>
+          <div class="metric-value">{{avg_power|int}} W</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Distance</div>
+          <div class="metric-value">{{total_dist|int}} m</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-section breakdown -->
+    {%if sections|length > 1%}
+    <div class="card">
+      <h2>Section Breakdown</h2>
+      <table class="sections-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>CdA</th>
+            <th>Grade (%)</th>
+            <th>Speed (km/h)</th>
+            <th>Power (W)</th>
+            <th>Distance (m)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {%for s in sections%}
+          <tr>
+            <td>{{loop.index}}</td>
+            <td class="cda-cell">{{s.cda}}</td>
+            <td>{{s.grade}}</td>
+            <td>{{s.speed}}</td>
+            <td>{{s.power|int}}</td>
+            <td>{{s.distance|int}}</td>
+          </tr>
+          {%endfor%}
+        </tbody>
+      </table>
+    </div>
+    {%endif%}
+
+    <!-- Elevation + Peucker-Douglas chart (only shown when multiple sections) -->
+    {% if sections|length > 1 %}
+    <div class="card">
+      <div style="background:#fff8e1;border-left:3px solid #e07b39;padding:8px 12px;margin-bottom:12px;font-size:0.8rem;color:#7a5000;border-radius:0 4px 4px 0;">
+        <strong>Multiple sections detected.</strong> The orange line is the peucker-douglas approximation of your elevation profile. CdA values are most reliable when the orange line closely matches the blue curve — 5 sections is the maximum for relevant results, and fewer is better.
+      </div>
+      <div class="chart-label">Elevation profile + peucker-douglas approximation</div>
+      <div id="elev-chart"></div>
+    </div>
+    {% endif %}
+
+    <!-- Save form -->
+    <div class="card">
+      <h2>Save Segment</h2>
+      <form method="POST" action="/save_segment">
+        <input type="hidden" name="iduser" value="{{params_meta.user}}">
+        <input type="hidden" name="idactivity" value="{{params_meta.id_act}}">
+        <input type="hidden" name="crr" value="{{params_meta.crr}}">
+        <input type="hidden" name="weight" value="{{params_meta.weight}}">
+        <input type="hidden" name="efficiency" value="{{params_meta.efficiency}}">
+        <input type="hidden" name="start" value="{{params_meta.start}}">
+        <input type="hidden" name="end" value="{{params_meta.end}}">
+        <input type="hidden" name="rep_cda" value="{{rep_cda}}">
+        <input type="hidden" name="cda_data" value='{{sections|tojson}}'>
+        <div class="form-field">
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" placeholder="e.g. Climb TT position">
+        </div>
+        <div class="form-field">
+          <label for="comments">Comments</label>
+          <textarea id="comments" name="comments" placeholder="Optional notes..."></textarea>
+        </div>
+        <button class="btn-save" type="submit">Save</button>
+      </form>
+    </div>
+
+  </div>
+
+  {% if sections|length > 1 %}
+  <script>
+    var profile = {{profile|tojson}};
+    var borderDistances = {{border_distances|tojson}};
+
+    (function() {
+      var margin = {top: 8, right: 16, bottom: 30, left: 46};
+      var container = document.getElementById('elev-chart');
+      var W = container.clientWidth || 640;
+      var H = 140;
+      var w = W - margin.left - margin.right;
+      var h = H - margin.top - margin.bottom;
+
+      var xScale = d3.scaleLinear().domain([0, profile[profile.length-1][0]]).range([0, w]);
+      var yMin = d3.min(profile, function(d){ return d[1]; });
+      var yMax = d3.max(profile, function(d){ return d[1]; });
+      var yScale = d3.scaleLinear().domain([yMin - 5, yMax + 5]).range([h, 0]);
+
+      var svg = d3.select('#elev-chart').append('svg')
+        .attr('width', W).attr('height', H)
+        .append('g').attr('transform', 'translate('+margin.left+','+margin.top+')');
+
+      // Elevation area fill + stroke
+      var area = d3.area()
+        .x(function(d){ return xScale(d[0]); })
+        .y0(h)
+        .y1(function(d){ return yScale(d[1]); });
+      svg.append('path').datum(profile)
+        .attr('fill', '#e8f0f8').attr('stroke', '#478ac9').attr('stroke-width', 1.5)
+        .attr('d', area);
+
+      // Peucker-Douglas piecewise-linear overlay
+      if (borderDistances && borderDistances.length >= 2) {
+        function interpElev(prof, d_target) {
+          for (var k = 0; k < prof.length - 1; k++) {
+            if (prof[k][0] <= d_target && prof[k+1][0] >= d_target) {
+              var frac = (d_target - prof[k][0]) / (prof[k+1][0] - prof[k][0]);
+              return prof[k][1] + frac * (prof[k+1][1] - prof[k][1]);
+            }
+          }
+          return prof[prof.length-1][1];
+        }
+        var pdPts = borderDistances.map(function(d) { return [d, interpElev(profile, d)]; });
+        var pdLine = d3.line()
+          .x(function(p){ return xScale(p[0]); })
+          .y(function(p){ return yScale(p[1]); });
+        svg.append('path').datum(pdPts)
+          .attr('fill', 'none').attr('stroke', '#e07b39').attr('stroke-width', 2)
+          .attr('d', pdLine);
+      }
+
+      svg.append('g').attr('transform', 'translate(0,'+h+')')
+        .call(d3.axisBottom(xScale).ticks(5).tickFormat(function(d){ return (d/1000).toFixed(2)+'km'; }))
+        .selectAll('text').style('font-size', '10px');
+      svg.append('g')
+        .call(d3.axisLeft(yScale).ticks(4).tickFormat(function(d){ return d+'m'; }))
+        .selectAll('text').style('font-size', '10px');
+    })();
+  </script>
+  {% endif %}
+</body>
+</html>

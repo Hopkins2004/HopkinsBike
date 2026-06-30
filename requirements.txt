@@ -1,0 +1,11 @@
+# Hopkins — Python dependencies
+# Install with:  pip install -r requirements.txt
+# (Werkzeug, Jinja2 and itsdangerous are pulled in automatically by Flask.)
+
+Flask>=3.0
+Flask-Cors>=4.0
+gpxpy>=1.6
+fitparse>=1.2
+
+# Dev / test only
+pytest>=8.0
