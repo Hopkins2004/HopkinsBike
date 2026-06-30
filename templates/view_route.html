@@ -240,9 +240,7 @@
 <body>
 
   <nav class="top-nav">
-    {%for page in page_permissions[role]%}
-    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
-    {%endfor%}
+    {% include '_nav.html' %}
   </nav>
 
   <div class="page-title">{{title or 'Route'}}</div>
@@ -366,7 +364,7 @@
   </div>
 
   <!-- Google Maps -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}"></script>
   <script>
     var rawPts = {{raw_pts|tojson}};
     var profile = {{profile|tojson}};

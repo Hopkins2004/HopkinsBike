@@ -105,9 +105,7 @@
 <body>
 
   <nav class="top-nav">
-    {%for page in page_permissions[role]%}
-    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
-    {%endfor%}
+    {% include '_nav.html' %}
   </nav>
 
   <div class="filter-bar">

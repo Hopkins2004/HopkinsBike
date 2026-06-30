@@ -290,9 +290,7 @@
 <body>
 
   <nav class="top-nav">
-    {%for page in page_permissions[role]%}
-    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
-    {%endfor%}
+    {% include '_nav.html' %}
   </nav>
 
   <div class="page-title">{{title or 'Segment'}}</div>
@@ -417,7 +415,7 @@
     </div>
   </div>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}"></script>
   <script>
     var coords = {{coords|tojson}};
     var rawPower = {{power|tojson}};

@@ -1,0 +1,5 @@
+{# Shared nav links. Included inside each page's <nav> wrapper. `role`, `page_permissions`
+   and `page_titles` are supplied by the app's context processor (hopkins/__init__.py). #}
+{% for page in page_permissions[role] %}
+<a href="{{ ''+page }}">{{ page_titles[page] }}</a>
+{% endfor %}

@@ -265,9 +265,7 @@
 </head>
 <body data-path-to-root="./" data-include-products="false" class="u-body u-xl-mode" data-lang="en">
   <nav class="top-nav">
-    {%for page in page_permissions[role]%}
-    <a href="{{ ''+page }}">{{page_titles[page]}}</a>
-    {%endfor%}
+    {% include '_nav.html' %}
   </nav>
 
   <div id="map-container">
@@ -306,7 +304,7 @@
 
   <div id="chart_div"></div>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}"></script>
 
   <script>
     let map;
@@ -392,7 +390,7 @@
 
   </script>
   <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUAk339DGU-IlM7XDkLa-WLRWYNBhVuY0&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&callback=initMap">
   </script>
 
   <script>
