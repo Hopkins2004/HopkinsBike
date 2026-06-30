@@ -1,19 +1,31 @@
 """Activities blueprint: FIT upload, history, visualise, segment create/save/edit/delete,
-and the CdA calculation pages."""
+and the CdA calculation pages.
+
+Every route here requires a logged-in user (enforced by before_request) and is scoped to
+the session owner: ids supplied by the client (q token / form fields) are validated against
+the session user's rows, so one user can never read or mutate another user's data (IDOR)."""
 import json
 import os
 
 from flask import (Blueprint, current_app, redirect, render_template, request,
-                   session)
+                   session, url_for)
 
 from ..db import get_db
 from ..physics.cda import rideCDA
 from ..physics.parsing import (aggregate_segments, extract_data, gpx_points,
                                gpx_raw_points, make_segments)
 from ..physics.route import compute_section_borders
-from .util import encode_q, decode_q
+from .util import (current_user_id, decode_q, encode_q, segment_owner_id,
+                   user_owns_activity)
 
 bp = Blueprint('activities', __name__)
+
+
+@bp.before_request
+def require_login():
+    """Claude_require_login: redirect anonymous visitors to the login page (no more 500s)."""
+    if 'username' not in session:
+        return redirect(url_for('auth.go_to_login'))
 
 
 def _activity_path(user, id_act):
@@ -98,10 +110,15 @@ def f_upload():
 
 @bp.route('/visualise')
 def f_visualise():
-    """Claude_f_visualise: decode opaque q param and render the activity map/charts."""
+    """Claude_f_visualise: decode opaque q param and render the activity map/charts.
+    Identity comes from the session, not the token (IDOR-safe)."""
     start, end, data_str = decode_q(request.args.get('q'))
     datas = list(map(str, data_str.split(',')))
-    user, id_act = int(datas[0]), int(datas[1])
+    id_act = int(datas[1])
+    user = current_user_id()
+    with get_db() as conn:
+        if not user_owns_activity(conn, user, id_act):
+            return redirect('/history')
     points, lapstamps = extract_data(_activity_path(user, id_act))
     coords = []
     power = []
@@ -132,7 +149,11 @@ def f_new_segment():
     """Claude_f_new_segment: load activity, compute lap indices, pass to segment template"""
     start, end, data_str = decode_q(request.args.get('q'))
     datas = list(map(str, data_str.split(',')))
-    user, id_act = int(datas[0]), int(datas[1])
+    id_act = int(datas[1])
+    user = current_user_id()
+    with get_db() as conn:
+        if not user_owns_activity(conn, user, id_act):
+            return redirect('/history')
     all_points, lapstamps = extract_data(_activity_path(user, id_act))
     coords = []
     power = []
@@ -178,8 +199,12 @@ def f_calculate():
     """Claude_f_calculate: peucker_douglas multi-section CdA calculation"""
     start, end, data_str = decode_q(request.args.get('q'))
     datas = list(map(str, data_str.split(',')))
-    user, id_act = int(datas[0]), int(datas[1])
+    id_act = int(datas[1])
     crr, weight, efficiency = float(datas[2]), float(datas[3]), float(datas[4])
+    user = current_user_id()
+    with get_db() as conn:
+        if not user_owns_activity(conn, user, id_act):
+            return redirect('/history')
     all_points, lapstamps = extract_data(_activity_path(user, id_act))
 
     pts = all_points[start:end]
@@ -255,7 +280,6 @@ def f_calculate():
 @bp.route('/save_segment', methods=['POST'])
 def f_save_segment():
     """Claude_f_save_segment: save segment with per-section CdA data as JSON"""
-    iduser = request.form['iduser']
     idactivity = request.form['idactivity']
     crr = request.form['crr']
     weight = request.form['weight']
@@ -267,10 +291,13 @@ def f_save_segment():
     cda_data_json = request.form.get('cda_data', '[]')
     rep_cda = float(request.form.get('rep_cda', 0))
 
+    iduser = current_user_id()
     rep_cda = round(rep_cda, 3)
     parameters_str = 'CRR:' + crr + ',Weight:' + weight + ',Efficiency:' + efficiency
 
     with get_db() as conn:
+        if not user_owns_activity(conn, iduser, idactivity):
+            return redirect('/history')
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO segments (id_analysis, start_pt, end_pt, parameters, cda, title, comment, cda_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -280,7 +307,7 @@ def f_save_segment():
         cursor.execute('SELECT length FROM files WHERE id_analysis = ?', (idactivity,))
         row = cursor.fetchone()
     activity_length = row[0] if row else 0
-    return redirect('/visualise?q=' + encode_q(0, activity_length, iduser + ',' + idactivity))
+    return redirect('/visualise?q=' + encode_q(0, activity_length, str(iduser) + ',' + str(idactivity)))
 
 
 @bp.route('/view_segment')
@@ -288,9 +315,12 @@ def f_view_segment():
     """Claude_f_view_segment: show saved segment with map, charts, peucker overlay and per-section CdA"""
     start, end, data_str = decode_q(request.args.get('q'))
     datas = data_str.split(',')
-    user, seg_id = int(datas[0]), int(datas[1])
+    seg_id = int(datas[1])
+    user = current_user_id()
 
     with get_db() as conn:
+        if segment_owner_id(conn, seg_id) != user:
+            return redirect('/history')
         cursor = conn.cursor()
         cursor.execute(
             'SELECT id_analysis, start_pt, end_pt, parameters, cda, title, comment, cda_data FROM segments WHERE id_segments = ?',
@@ -354,7 +384,10 @@ def f_delete_segment():
     """Claude_f_delete_segment: delete a segment and redirect to history or visualise"""
     seg = request.form['supression']
     from_history = request.form.get('from_history', '0')
+    uid = current_user_id()
     with get_db() as conn:
+        if segment_owner_id(conn, seg) != uid:
+            return redirect('/history')
         cursor = conn.cursor()
         cursor.execute('SELECT id_analysis FROM segments WHERE id_segments = ?', (seg,))
         analysis = cursor.fetchone()[0]
@@ -376,7 +409,10 @@ def f_edit_segment():
     seg_id = request.form['id_segments']
     new_title = request.form['title']
     new_comment = request.form['comment']
+    uid = current_user_id()
     with get_db() as conn:
+        if segment_owner_id(conn, seg_id) != uid:
+            return redirect('/history')
         cursor = conn.cursor()
         cursor.execute('UPDATE segments SET title = ?, comment = ? WHERE id_segments = ?', (new_title, new_comment, seg_id))
     return redirect('/history')
@@ -386,7 +422,6 @@ def f_edit_segment():
 def f_update_segment():
     """Claude_f_update_segment: save edits and fully recalculate CdA with new parameters"""
     seg_id = request.form['id_segments']
-    user = request.form['user']
     new_title = request.form['title'].strip()
     new_comment = request.form['comment'].strip()
     crr = float(request.form['crr'].strip())
@@ -394,7 +429,10 @@ def f_update_segment():
     efficiency = float(request.form['efficiency'].strip())
     parameters_str = 'CRR:' + str(crr) + ',Weight:' + str(weight) + ',Efficiency:' + str(efficiency)
 
+    user = current_user_id()
     with get_db() as conn:
+        if segment_owner_id(conn, seg_id) != user:
+            return redirect('/history')
         cursor = conn.cursor()
         cursor.execute('SELECT id_analysis, start_pt, end_pt FROM segments WHERE id_segments = ?', (seg_id,))
         row = cursor.fetchone()
@@ -456,7 +494,7 @@ def f_update_segment():
             'UPDATE segments SET title = ?, comment = ?, parameters = ?, cda = ?, cda_data = ? WHERE id_segments = ?',
             (new_title, new_comment, parameters_str, rep_cda, json.dumps(sections), seg_id)
         )
-    return redirect('/view_segment?q=' + encode_q(0, 0, user + ',' + seg_id))
+    return redirect('/view_segment?q=' + encode_q(0, 0, str(user) + ',' + str(seg_id)))
 
 
 @bp.route('/rename_activity', methods=['POST'])
@@ -464,7 +502,10 @@ def f_rename_activity():
     """Claude_f_rename_activity: update the title of an activity for the current user"""
     id_analysis = request.form['id_analysis']
     new_title = request.form['new_title'].strip()
+    uid = current_user_id()
     with get_db() as conn:
+        if not user_owns_activity(conn, uid, id_analysis):
+            return redirect('/history')
         cursor = conn.cursor()
         cursor.execute('UPDATE files SET title = ? WHERE id_analysis = ?', (new_title, id_analysis))
     return redirect('/history')
@@ -472,9 +513,12 @@ def f_rename_activity():
 
 @bp.route('/delete_file', methods=['GET', 'POST'])
 def f_delete_file():
-    """Claude_f_delete_file: delete an activity record."""
+    """Claude_f_delete_file: delete an activity record owned by the current user."""
     file = request.form['supression']
+    uid = current_user_id()
     with get_db() as conn:
+        if not user_owns_activity(conn, uid, file):
+            return redirect('/history')
         cursor = conn.cursor()
         cursor.execute('DELETE FROM files WHERE id_analysis = ?', (file,))
     return redirect('/history')

@@ -46,6 +46,32 @@ def current_user_id():
     return row[0] if row else None
 
 
+def user_owns_activity(conn, uid, id_analysis):
+    """Claude_user_owns_activity: True if activity `id_analysis` belongs to user `uid`."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM files WHERE id_analysis = ? AND id_user = ?", (id_analysis, uid))
+    return cursor.fetchone() is not None
+
+
+def user_owns_route(conn, uid, id_route):
+    """Claude_user_owns_route: True if GPX route `id_route` belongs to user `uid`."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM gpx WHERE id_route = ? AND id_user = ?", (id_route, uid))
+    return cursor.fetchone() is not None
+
+
+def segment_owner_id(conn, seg_id):
+    """Claude_segment_owner_id: id_user that owns the activity behind segment `seg_id`, or None."""
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT f.id_user FROM segments s JOIN files f ON s.id_analysis = f.id_analysis "
+        "WHERE s.id_segments = ?",
+        (seg_id,),
+    )
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
 def login_required(view):
     """Claude_login_required: redirect anonymous visitors to /login instead of 500-ing."""
     @wraps(view)

@@ -77,3 +77,56 @@ route-trace review. The GPX route flow IS driven live with a synthetic GPX.
   string-injecting context processor (home.html was already correct).
 - Maps key: 6 hardcoded `key=AIza…` occurrences → `key={{ maps_api_key }}` (injected).
 - Deleted confirmed-dead templates: calculate, edit, hmm, index, kill, launch.
+
+### Phase 5 — Auth + IDOR + config hardening ✅ (behaviour-changing, by design)
+- `before_request` on the `activities` and `routes_gpx` blueprints redirects anonymous
+  visitors to `/login` instead of raising KeyError → 500. (Guest pages, login/register,
+  and file serving stay public.) `login_required` decorator also available in util.
+- IDOR closed: every data route now derives the user id from the **session**
+  (`current_user_id`) and validates the client-supplied id against the owner via
+  `user_owns_activity` / `user_owns_route` / `segment_owner_id`. A forged `q` token or form
+  id for another user's activity/segment/route now redirects to `/history` or `/routes`
+  instead of reading/mutating that data. Legitimate owners (token id == session id) are
+  unaffected — identical behaviour.
+- Config hardening (Phase 2): secret from env (not `'secret'`), `debug=False` default,
+  CORS only when origins configured (was wide-open). Maps key injected from config.
+- Verified by `tests/test_auth_idor.py` (anonymous redirect + cross-user route &
+  segment-delete blocked) — all green.
+
+### Phase 7 — Hygiene + docs + verification ✅
+- `README.md` added (layout, run instructions, env vars, test commands).
+- `users.credit`: confirmed write-only (set to 100 on register, never read anywhere).
+  Left in place — dropping a column requires a SQLite table rebuild, which is out of scope
+  for a "no behaviour change" pass; flagged here for a future migration.
+- The `q` token is still plain base64 (unsigned), but it is **no longer trusted for
+  identity** — the session is the source of truth — so forging it gains nothing. Signing
+  the token is therefore optional follow-up, not a live hole.
+
+## Final verification (all green)
+- `pytest tests/` → **18 passed**: physics golden (13), url-map (1), auth/IDOR (3),
+  full GPX route flow (1).
+- `py_compile` across `hopkins/`, `run.py`, `app.py` → OK.
+- Real WSGI boot (werkzeug make_server): `/ /home /login /register /how-it-works
+  /whitepaper` all serve 200; clean shutdown.
+- Audit grep: 0 leftover `templates/data.db`/`templates/uploads` references, 0 bare
+  `except:`, `sqlite3.connect` only in `db.py`.
+
+## after.txt coverage map
+- §1 monolith / app factory / blueprints / package layout → done (Phase 2).
+- §1 view_tables.py → moved to scripts/ (Phase 1).
+- §2 template inheritance / nav dedup → `_nav.html` include + context processor (Phase 4);
+  full base.html extension intentionally limited to the nav to preserve identical render.
+- §2 role string-vs-function contract → fixed (string everywhere, Phase 2/4).
+- §2 dead templates → deleted (Phase 4).
+- §3 22 inline connects → `get_db()` helper (Phase 2/3). DB moved out of templates/
+  (Phase 1). try/except migrations → explicit idempotent (Phase 3). credit → flagged.
+- §4 login enforcement + IDOR + secret/debug/CORS/maps-key → done (Phase 5 / Phase 2).
+- §5 bare excepts → narrowed (Phase 6/2).
+- §6 grade_rank extraction + cda→cda_val → done (Phase 6, golden-guarded).
+- §7 git/.gitignore/README/tests → done (Phases 0/7). No zips present. OS cruft removed.
+
+## Known limitation
+Activity (`.fit`) web flows could not be driven live (no `.fit` sample on disk; the real
+DB references uploads that are gone). They are covered by the physics golden tests + a
+careful route-trace review. The GPX route flow IS exercised end-to-end against a synthetic
+GPX, and all auth/IDOR paths are exercised against an isolated temp DB.
