@@ -103,7 +103,7 @@
           </div>
           <div class="u-nav-container">
             <ul class="u-nav u-spacing-30 u-unstyled u-nav-1">
-              {%for page in page_permissions[role()]%}
+              {%for page in page_permissions[role]%}
 
               <li class="u-nav-item"><a class="u-border-1 u-border-active-grey-90 u-border-hover-grey-50 u-border-no-left u-border-no-right u-border-no-top u-button-style u-nav-link u-text-active-grey-90 u-text-grey-90 u-text-hover-grey-90" href="{{ ''+page }}" style="padding: 10px 0px;">{{page_titles[page]}}</a>
               </li>
@@ -114,7 +114,7 @@
               <div class="u-inner-container-layout u-sidenav-overflow">
                 <div class="u-menu-close"></div>
                 <ul class="u-align-center u-nav u-popupmenu-items u-unstyled u-nav-2">
-                  {%for page in page_permissions[role()]%}
+                  {%for page in page_permissions[role]%}
                   <li class="u-nav-item"><a class="u-button-style u-nav-link" href="{{ ''+page }}">{{page_titles[page]}}</a>
                   {%endfor%}
                 </ul>
