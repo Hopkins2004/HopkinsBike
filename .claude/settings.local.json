@@ -20,7 +20,10 @@
       "Bash(.venv/bin/python -m py_compile app.py)",
       "Bash(.venv/bin/python *)",
       "Bash(/Users/sachaarroues-paykin/Documents/claude/hopkins/.venv/bin/python e2e.py)",
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(cp /Users/sachaarroues-paykin/Documents/claude/hopkins/data/data.db real_copy.db)",
+      "Bash(/Users/sachaarroues-paykin/Documents/claude/hopkins/.venv/bin/python -)",
+      "Bash(grep -rnE 'AIza[0-9A-Za-z_-]{10,}|secret|client_secret|api[_-]?key|password\\\\s*=\\\\s*['\\\\''\"]|token\\\\s*=\\\\s*['\\\\''\"]' --include=*.py --include=*.html --include=*.js --include=*.css --include=*.txt --include=*.md -i .)"
     ]
   }
 }

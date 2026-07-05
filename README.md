@@ -40,10 +40,10 @@ run.py                  dev entry point
 ### Configuration (environment variables, all optional)
 | var | default | purpose |
 |-----|---------|---------|
-| `HOPKINS_SECRET` | `dev-secret-change-me` | Flask session secret — **set a real value in production** |
+| `HOPKINS_SECRET` | `REPLACE_WITH_FLASK_SECRET_KEY` | Flask session secret — **set a real value in production** |
 | `HOPKINS_DB` | `data/data.db` | SQLite file path |
 | `HOPKINS_UPLOADS` | `data/uploads` | uploaded FIT/GPX storage |
-| `HOPKINS_MAPS_KEY` | (shipped key) | Google Maps JS key — set & restrict by referrer in prod |
+| `HOPKINS_MAPS_KEY` | `REPLACE_WITH_GOOGLE_MAPS_API_KEY` | Google Maps JS key — set & restrict by referrer in prod |
 | `HOPKINS_DEBUG` | `0` | `1` enables the Werkzeug debugger (dev only) |
 | `HOPKINS_CORS_ORIGINS` | (none) | comma-separated allowed CORS origins; empty = same-origin only |
 | `HOPKINS_HTTPS` | `0` | `1` marks the session cookie Secure (set behind TLS) |

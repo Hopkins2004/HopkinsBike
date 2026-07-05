@@ -46,6 +46,37 @@
         .filter-bar input:focus { outline: none; border-color: #478ac9; }
         .filter-label { font-size: 0.8rem; color: #888; }
 
+        .select-btn {
+            margin-left: auto;
+            padding: 7px 16px;
+            border-radius: 8px;
+            border: 1px solid #d6dce4;
+            background: #fff;
+            color: #445;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .select-btn:hover { background: #f2f5f9; }
+        .select-btn.active { background: #478ac9; color: #fff; border-color: #478ac9; }
+
+        .bulk-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0 28px 12px 28px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: #eef3fb;
+            border: 1px solid #d8e3f2;
+            font-size: 0.85rem;
+            color: #33475b;
+        }
+        body.select-mode .bulk-bar { display: flex; }
+        .bulk-actions { display: flex; gap: 8px; }
+
         .page-content { padding: 0 28px 28px 28px; }
         .section-wrapper { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
 
@@ -64,6 +95,10 @@
         .route-row:hover td { background: #f9fbff; }
         .no-data td { color: #aaa; text-align: center; padding: 24px; }
 
+        .sel-cell { display: none; width: 44px; text-align: center; }
+        body.select-mode .sel-cell { display: table-cell; }
+        .row-check { width: 17px; height: 17px; cursor: pointer; accent-color: #478ac9; vertical-align: middle; }
+
         .txt-btn {
             background: none;
             border: none;
@@ -79,27 +114,93 @@
         .txt-btn.danger { color: #b71c1c; }
         .txt-btn.danger:hover { color: #7f0000; }
 
-        /* Modals */
+        /* ---- Sleek modal system (shared: delete + rename + bulk) ---- */
+        .overlay {
+            opacity: 0;
+            visibility: hidden;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.5);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+            transition: opacity 0.16s ease, visibility 0.16s ease;
+        }
+        .overlay.show { opacity: 1; visibility: visible; }
+
         .modal {
-            display: none;
+            opacity: 0;
+            visibility: hidden;
             position: fixed;
             top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 24px;
+            transform: translate(-50%, -46%);
+            width: 380px;
+            max-width: 92vw;
+            padding: 28px 26px 22px 26px;
             background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(20,30,50,0.28);
             z-index: 1000;
-            min-width: 340px;
+            text-align: center;
+            transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
         }
-        .modal h3 { margin: 0 0 14px 0; font-size: 1rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 999; }
-        .modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px; }
-        .btn-close   { background: #f0f0f0; color: #555; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
-        .btn-close:hover { background: #e0e0e0; }
-        .btn-submit  { background: #478ac9; color: #fff; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
-        .btn-submit:hover { background: #2f6fa8; }
-        .rename-input { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; margin-top: 6px; }
+        .modal.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%); }
+        .modal-title { font-size: 1.12rem; font-weight: 700; color: #1a2233; margin-bottom: 8px; }
+        .modal-sub { font-size: 0.86rem; color: #6b7280; line-height: 1.5; margin-bottom: 22px; }
+        .modal-sub strong { color: #33475b; }
+        .modal-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dde2ea;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            box-sizing: border-box;
+            margin: 4px 0 20px 0;
+        }
+        .modal-input:focus { outline: none; border-color: #478ac9; }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-actions > * { flex: 1; margin: 0; }
+        .modal-actions form button { width: 100%; }
+
+        .btn-ghost {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 1px solid #e2e6ec;
+            background: #fff;
+            color: #444;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-ghost:hover { background: #f4f6f9; }
+        .btn-primary-solid {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: none;
+            background: #478ac9;
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-primary-solid:hover { background: #3478b0; }
+        .btn-danger-solid {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: none;
+            background: #e5484d;
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(229,72,77,0.3);
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+        .btn-danger-solid:hover { background: #d13438; }
+        .btn-danger-solid:disabled { background: #e9a8aa; box-shadow: none; cursor: default; }
+        .btn-sm { padding: 7px 14px; font-size: 0.8rem; box-shadow: none; }
     </style>
 </head>
 <body>
@@ -111,6 +212,17 @@
   <div class="filter-bar">
     <span class="filter-label">Filter:</span>
     <input type="text" id="route-search" placeholder="Search by title..." oninput="filterRoutes()">
+    {% if routes %}
+    <button id="select-btn" class="select-btn" onclick="toggleSelectMode()">Select</button>
+    {% endif %}
+  </div>
+
+  <div id="bulk-bar" class="bulk-bar">
+    <span><strong id="bulk-count">0</strong> selected</span>
+    <div class="bulk-actions">
+      <button class="btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+      <button id="bulk-delete-btn" class="btn-danger-solid btn-sm" onclick="openBulkDeleteModal()" disabled>Delete selected</button>
+    </div>
   </div>
 
   <div class="page-content">
@@ -121,62 +233,134 @@
           {%for row in routes%}
           {%set rid = row[0]%}
           {% set route_url = '/view_route?q=' + encode_q(0, 0, user|string + ',' + rid|string) %}
-          <tr class="route-row" data-title="{{ row[1]|lower if row[1] else '' }}" onclick="window.location='{{route_url}}'">
-            <td>{{row[1] or 'Unnamed route'}}</td>
+          <tr class="route-row" data-title="{{ row[1]|lower if row[1] else '' }}" onclick="rowNav('{{route_url}}', '{{rid}}')">
+            <td>{{row[1] or 'New Route'}}</td>
             <td>{{row[2]}} km</td>
             <td style="text-align:right; white-space:nowrap;" onclick="event.stopPropagation()">
-              <button class="txt-btn" onclick="openModal('rename_{{rid}}','overlay_rename_{{rid}}')">Rename</button>
-              <button class="txt-btn danger" onclick="openModal('delete_{{rid}}','overlay_delete_{{rid}}')">Delete</button>
+              <button class="txt-btn" onclick="openModal('rename_{{rid}}')">Rename</button>
+              <button class="txt-btn danger" onclick="openModal('delete_{{rid}}')">Delete</button>
+            </td>
+            <td class="sel-cell" onclick="event.stopPropagation()">
+              <input type="checkbox" class="row-check" value="{{rid}}" onchange="updateBulkBar()">
             </td>
           </tr>
-
-          <!-- Rename modal -->
-          <div id="rename_{{rid}}" class="modal">
-            <h3>Rename Route</h3>
-            <form method="POST" action="/rename_route">
-              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-              <input type="hidden" name="id_route" value="{{rid}}">
-              <input class="rename-input" type="text" name="new_title" value="{{row[1] or ''}}" placeholder="New name" required>
-              <div class="modal-actions">
-                <button type="button" class="btn-close" onclick="closeModal('rename_{{rid}}','overlay_rename_{{rid}}')">Cancel</button>
-                <button type="submit" class="btn-submit">Save</button>
-              </div>
-            </form>
-          </div>
-          <div id="overlay_rename_{{rid}}" class="overlay" onclick="closeModal('rename_{{rid}}','overlay_rename_{{rid}}')"></div>
-
-          <!-- Delete modal -->
-          <div id="delete_{{rid}}" class="modal">
-            <h3>Delete Route</h3>
-            <p style="font-size:0.9rem;color:#555;">Delete <strong>{{row[1] or 'this route'}}</strong>?</p>
-            <div class="modal-actions">
-              <button class="btn-close" onclick="closeModal('delete_{{rid}}','overlay_delete_{{rid}}')">Cancel</button>
-              <form method="POST" action="/delete_route">
-                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                <input type="hidden" name="id_route" value="{{rid}}">
-                <button class="btn-submit" style="background:#b71c1c;" type="submit">Delete</button>
-              </form>
-            </div>
-          </div>
-          <div id="overlay_delete_{{rid}}" class="overlay" onclick="closeModal('delete_{{rid}}','overlay_delete_{{rid}}')"></div>
-
           {%endfor%}
         </tbody>
         {%else%}
-        <tbody><tr class="no-data"><td colspan="3">No routes yet. Upload a GPX file.</td></tr></tbody>
+        <tbody><tr class="no-data"><td colspan="4">No routes yet. Upload a GPX file.</td></tr></tbody>
         {%endif%}
       </table>
     </div>
   </div>
 
+  <div id="modal-overlay" class="overlay" onclick="closeAllModals()"></div>
+
+  {%for row in routes%}
+  {%set rid = row[0]%}
+  <div id="rename_{{rid}}" class="modal">
+    <div class="modal-title">Rename route</div>
+    <form method="POST" action="/rename_route">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="id_route" value="{{rid}}">
+      <input class="modal-input" type="text" name="new_title" value="{{row[1] or ''}}" placeholder="New name" required>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeAllModals()">Cancel</button>
+        <button type="submit" class="btn-primary-solid">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="delete_{{rid}}" class="modal">
+    <div class="modal-title">Delete route?</div>
+    <p class="modal-sub"><strong>{{row[1] or 'New Route'}}</strong> will be permanently removed.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" onclick="closeAllModals()">Cancel</button>
+      <form method="POST" action="/delete_route">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="id_route" value="{{rid}}">
+        <button class="btn-danger-solid" type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+  {%endfor%}
+
+  <div id="bulk-delete-modal" class="modal">
+    <div class="modal-title">Delete <span id="bulk-modal-count">0</span> routes?</div>
+    <p class="modal-sub">The selected routes will be permanently removed.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" onclick="closeAllModals()">Cancel</button>
+      <button type="button" class="btn-danger-solid" onclick="submitBulkDelete()">Delete</button>
+    </div>
+  </div>
+
   <script>
-    function openModal(m, o) { document.getElementById(m).style.display='block'; document.getElementById(o).style.display='block'; }
-    function closeModal(m, o) { document.getElementById(m).style.display='none'; document.getElementById(o).style.display='none'; }
+    var CSRF = "{{ csrf_token() }}";
+    var selectMode = false;
+
+    function openModal(id) {
+      document.getElementById('modal-overlay').classList.add('show');
+      document.getElementById(id).classList.add('show');
+    }
+    function closeAllModals() {
+      document.getElementById('modal-overlay').classList.remove('show');
+      document.querySelectorAll('.modal.show').forEach(function(m) { m.classList.remove('show'); });
+    }
+
+    function rowNav(url, rid) {
+      if (selectMode) {
+        var c = document.querySelector('.row-check[value="' + rid + '"]');
+        if (c) { c.checked = !c.checked; updateBulkBar(); }
+        return;
+      }
+      window.location = url;
+    }
+
     function filterRoutes() {
       var q = document.getElementById('route-search').value.toLowerCase();
       document.querySelectorAll('.route-row').forEach(function(r) {
         r.style.display = (r.getAttribute('data-title') || '').includes(q) ? '' : 'none';
       });
+    }
+
+    function toggleSelectMode() {
+      selectMode = !selectMode;
+      document.body.classList.toggle('select-mode', selectMode);
+      var btn = document.getElementById('select-btn');
+      btn.textContent = selectMode ? 'Done' : 'Select';
+      btn.classList.toggle('active', selectMode);
+      if (!selectMode) clearSelection();
+    }
+    function clearSelection() {
+      document.querySelectorAll('.row-check').forEach(function(c) { c.checked = false; });
+      updateBulkBar();
+    }
+    function updateBulkBar() {
+      var n = document.querySelectorAll('.row-check:checked').length;
+      document.getElementById('bulk-count').textContent = n;
+      document.getElementById('bulk-delete-btn').disabled = n === 0;
+    }
+    function openBulkDeleteModal() {
+      var n = document.querySelectorAll('.row-check:checked').length;
+      if (!n) return;
+      document.getElementById('bulk-modal-count').textContent = n;
+      openModal('bulk-delete-modal');
+    }
+    function submitBulkDelete() {
+      var ids = Array.prototype.slice.call(document.querySelectorAll('.row-check:checked')).map(function(c) { return c.value; });
+      if (!ids.length) return;
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/delete_routes';
+      var csrf = document.createElement('input');
+      csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = CSRF;
+      form.appendChild(csrf);
+      ids.forEach(function(id) {
+        var i = document.createElement('input');
+        i.type = 'hidden'; i.name = 'ids'; i.value = id;
+        form.appendChild(i);
+      });
+      document.body.appendChild(form);
+      form.submit();
     }
   </script>
 

@@ -2,8 +2,6 @@
 <html style="font-size: 16px;" lang="en"><head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
-    <meta name="keywords" content="">
-    <meta name="description" content="">
     <title>History</title>
     <style>
         body { font-family: 'Open Sans', sans-serif; background: #f4f6f9; margin: 0; color: #333; }
@@ -48,6 +46,38 @@
         .filter-bar input:focus { outline: none; border-color: #478ac9; }
         .filter-label { font-size: 0.8rem; color: #888; }
 
+        .select-btn {
+            margin-left: auto;
+            padding: 7px 16px;
+            border-radius: 8px;
+            border: 1px solid #d6dce4;
+            background: #fff;
+            color: #445;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .select-btn:hover { background: #f2f5f9; }
+        .select-btn.active { background: #478ac9; color: #fff; border-color: #478ac9; }
+
+        /* Bulk action bar (select mode) */
+        .bulk-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0 28px 12px 28px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: #eef3fb;
+            border: 1px solid #d8e3f2;
+            font-size: 0.85rem;
+            color: #33475b;
+        }
+        body.select-mode .bulk-bar { display: flex; }
+        .bulk-actions { display: flex; gap: 8px; }
+
         /* Table */
         .page-content { padding: 0 28px 28px 28px; }
         .section-wrapper { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
@@ -65,6 +95,11 @@
         }
         .activity-row:hover td { background: #f9fbff; }
         .no-data td { color: #aaa; text-align: center; padding: 24px; }
+
+        /* Checkbox column (select mode) */
+        .sel-cell { display: none; width: 44px; text-align: center; }
+        body.select-mode .sel-cell { display: table-cell; }
+        .row-check { width: 17px; height: 17px; cursor: pointer; accent-color: #478ac9; vertical-align: middle; }
 
         /* Inline subtable row */
         .segments-row { display: none; }
@@ -100,18 +135,6 @@
         /* Clickable activity rows */
         .activity-row { cursor: pointer; }
 
-        /* Action buttons */
-        .btn-action {
-            border: none;
-            border-radius: 4px;
-            padding: 5px 11px;
-            font-size: 0.78rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-right: 4px;
-            text-decoration: none;
-            display: inline-block;
-        }
         /* Subtle text-style action links */
         .txt-btn {
             background: none;
@@ -130,40 +153,98 @@
         .txt-btn.segments.open { font-weight: 700; }
         .txt-btn.danger { color: #b71c1c; }
         .txt-btn.danger:hover { color: #7f0000; }
-        .btn-segments.open { background: #c3e6cb; }
-        .btn-danger   { background: #fdecea; color: #b71c1c; }
-        .btn-danger:hover { background: #ffcdd2; }
 
-        /* Modal (rename + delete) */
+        /* ---- Sleek modal system (shared: delete + rename + bulk) ---- */
+        .overlay {
+            opacity: 0;
+            visibility: hidden;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.5);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+            transition: opacity 0.16s ease, visibility 0.16s ease;
+        }
+        .overlay.show { opacity: 1; visibility: visible; }
+
         .modal {
-            display: none;
+            opacity: 0;
+            visibility: hidden;
             position: fixed;
             top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 24px;
+            transform: translate(-50%, -46%);
+            width: 380px;
+            max-width: 92vw;
+            padding: 28px 26px 22px 26px;
             background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(20,30,50,0.28);
             z-index: 1000;
-            min-width: 340px;
+            text-align: center;
+            transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
         }
-        .modal h3 { margin: 0 0 14px 0; font-size: 1rem; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 999; }
-        .modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px; }
-        .btn-close   { background: #f0f0f0; color: #555; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
-        .btn-close:hover { background: #e0e0e0; }
-        .btn-submit  { background: #478ac9; color: #fff; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-size: 0.85rem; }
-        .btn-submit:hover { background: #2f6fa8; }
-        .btn-delete-icon { background: none; border: none; padding: 0; cursor: pointer; }
-        .btn-delete-icon img { width: 20px; height: 20px; }
-        .rename-input { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; margin-top: 6px; }
+        .modal.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%); }
+        .modal-title { font-size: 1.12rem; font-weight: 700; color: #1a2233; margin-bottom: 8px; }
+        .modal-sub { font-size: 0.86rem; color: #6b7280; line-height: 1.5; margin-bottom: 22px; }
+        .modal-sub strong { color: #33475b; }
+        .modal-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dde2ea;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            box-sizing: border-box;
+            margin: 4px 0 20px 0;
+        }
+        .modal-input:focus { outline: none; border-color: #478ac9; }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-actions > * { flex: 1; margin: 0; }
+        .modal-actions form button { width: 100%; }
+
+        .btn-ghost {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 1px solid #e2e6ec;
+            background: #fff;
+            color: #444;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-ghost:hover { background: #f4f6f9; }
+        .btn-primary-solid {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: none;
+            background: #478ac9;
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-primary-solid:hover { background: #3478b0; }
+        .btn-danger-solid {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: none;
+            background: #e5484d;
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(229,72,77,0.3);
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+        .btn-danger-solid:hover { background: #d13438; }
+        .btn-danger-solid:disabled { background: #e9a8aa; box-shadow: none; cursor: default; }
+        .btn-sm { padding: 7px 14px; font-size: 0.8rem; box-shadow: none; }
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='nicepage.css')}}" media="screen">
     <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,300i,400,400i,700,700i|Open+Sans:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i">
     <meta name="theme-color" content="#478ac9">
-    <meta property="og:title" content="History">
-    <meta property="og:type" content="website">
-    <meta data-intl-tel-input-cdn-path="intlTelInput/">
 </head>
 <body data-path-to-root="./" data-include-products="false" class="u-body u-xl-mode" data-lang="en">
 
@@ -175,6 +256,18 @@
   <div class="filter-bar">
     <span class="filter-label">Filter:</span>
     <input type="text" id="activity-search" placeholder="Search by title..." oninput="filterActivities()">
+    {% if data != [] %}
+    <button id="select-btn" class="select-btn" onclick="toggleSelectMode()">Select</button>
+    {% endif %}
+  </div>
+
+  <!-- Bulk action bar (select mode) -->
+  <div id="bulk-bar" class="bulk-bar">
+    <span><strong id="bulk-count">0</strong> selected</span>
+    <div class="bulk-actions">
+      <button class="btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+      <button id="bulk-delete-btn" class="btn-danger-solid btn-sm" onclick="openBulkDeleteModal()" disabled>Delete selected</button>
+    </div>
   </div>
 
   <div class="page-content">
@@ -185,9 +278,9 @@
           {%for row in data%}
           {%set act_id = row[0]%}
 
-          <!-- Activity row (clickable to open) -->
+          <!-- Activity row (clickable to open; toggles checkbox in select mode) -->
           {% set act_url = '/visualise?q=' + encode_q(0, row[1], user|string + ',' + row[0]|string) %}
-          <tr class="activity-row" data-title="{{ row[2]|lower }}" onclick="window.location='{{act_url}}'">
+          <tr class="activity-row" data-title="{{ row[2]|lower }}" onclick="rowNav('{{act_url}}', '{{act_id}}')">
             <td>{{row[2]}}</td>
             <td>{{row[3]}}</td>
             <td>{{row[4]}}</td>
@@ -195,14 +288,17 @@
               <button class="txt-btn segments" id="vsBtn_{{act_id}}" onclick="toggleSegments({{act_id}})">Segments ▾</button>
             </td>
             <td style="text-align:right; white-space:nowrap;" onclick="event.stopPropagation()">
-              <button class="txt-btn" onclick="openModal('rename_{{act_id}}', 'overlay_rename_{{act_id}}')">Rename</button>
-              <button class="txt-btn danger" onclick="openModal('delete_{{act_id}}', 'overlay_delete_{{act_id}}')">Delete</button>
+              <button class="txt-btn" onclick="openModal('rename_{{act_id}}')">Rename</button>
+              <button class="txt-btn danger" onclick="openModal('delete_{{act_id}}')">Delete</button>
+            </td>
+            <td class="sel-cell" onclick="event.stopPropagation()">
+              <input type="checkbox" class="row-check" value="{{act_id}}" onchange="updateBulkBar()">
             </td>
           </tr>
 
-          <!-- Inline segments subtable row (TASK-011.4) -->
+          <!-- Inline segments subtable row -->
           <tr class="segments-row" id="segs_{{act_id}}">
-            <td colspan="5">
+            <td colspan="6">
               <div class="segments-inner">
                 {%set segs = segments_by_activity[act_id]%}
                 {%if segs%}
@@ -231,26 +327,9 @@
                       </td>
                       <td>{{seg[3]}}</td>
                       <td style="white-space:nowrap; text-align:right;" onclick="event.stopPropagation()">
-                        <button class="txt-btn danger" onclick="openModal('seg_del_{{seg_id}}', 'seg_overlay_del_{{seg_id}}')">Delete</button>
+                        <button class="txt-btn danger" onclick="openModal('seg_del_{{seg_id}}')">Delete</button>
                       </td>
                     </tr>
-
-                    <!-- Segment delete modal -->
-                    <div id="seg_del_{{seg_id}}" class="modal">
-                      <h3>Delete Segment</h3>
-                      <p style="font-size:0.9rem;color:#555;">Delete <strong>{{seg[1]}}</strong>?</p>
-                      <div class="modal-actions">
-                        <button class="btn-close" onclick="closeModal('seg_del_{{seg_id}}', 'seg_overlay_del_{{seg_id}}')">Cancel</button>
-                        <form method="POST" action="/delete_segment">
-                          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                          <input type="hidden" name="supression" value="{{seg_id}}">
-                          <input type="hidden" name="from_history" value="1">
-                          <button class="btn-submit" style="background:#b71c1c;" type="submit">Delete</button>
-                        </form>
-                      </div>
-                    </div>
-                    <div id="seg_overlay_del_{{seg_id}}" class="overlay" onclick="closeModal('seg_del_{{seg_id}}', 'seg_overlay_del_{{seg_id}}')"></div>
-
                     {%endfor%}
                   </tbody>
                 </table>
@@ -260,54 +339,95 @@
               </div>
             </td>
           </tr>
-
-          <!-- Rename modal -->
-          <div id="rename_{{act_id}}" class="modal">
-            <h3>Rename Activity</h3>
-            <form method="POST" action="/rename_activity">
-              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-              <input type="hidden" name="id_analysis" value="{{act_id}}">
-              <input class="rename-input" type="text" name="new_title" value="{{row[2]}}" placeholder="New name" required>
-              <div class="modal-actions">
-                <button type="button" class="btn-close" onclick="closeModal('rename_{{act_id}}', 'overlay_rename_{{act_id}}')">Cancel</button>
-                <button type="submit" class="btn-submit">Save</button>
-              </div>
-            </form>
-          </div>
-          <div id="overlay_rename_{{act_id}}" class="overlay" onclick="closeModal('rename_{{act_id}}', 'overlay_rename_{{act_id}}')"></div>
-
-          <!-- Delete modal -->
-          <div id="delete_{{act_id}}" class="modal">
-            <h3>Delete Activity</h3>
-            <p style="font-size:0.9rem;color:#555;">Delete <strong>{{row[2]}}</strong>?</p>
-            <div class="modal-actions">
-              <button class="btn-close" onclick="closeModal('delete_{{act_id}}', 'overlay_delete_{{act_id}}')">Cancel</button>
-              <form method="POST" action="/delete_file">
-                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                <input type="hidden" name="supression" value="{{act_id}}">
-                <button class="btn-delete-icon" type="submit"><img src="/static/bin.png" alt="Delete"></button>
-              </form>
-            </div>
-          </div>
-          <div id="overlay_delete_{{act_id}}" class="overlay" onclick="closeModal('delete_{{act_id}}', 'overlay_delete_{{act_id}}')"></div>
-
           {%endfor%}
         </tbody>
         {%else%}
-        <tbody><tr class="no-data"><td colspan="5">No activities yet.</td></tr></tbody>
+        <tbody><tr class="no-data"><td colspan="6">No activities yet.</td></tr></tbody>
         {%endif%}
       </table>
     </div>
   </div>
 
+  <!-- Shared dimmed overlay -->
+  <div id="modal-overlay" class="overlay" onclick="closeAllModals()"></div>
+
+  <!-- Per-activity rename + delete modals, and per-segment delete modals -->
+  {%for row in data%}
+  {%set act_id = row[0]%}
+  <div id="rename_{{act_id}}" class="modal">
+    <div class="modal-title">Rename activity</div>
+    <form method="POST" action="/rename_activity">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="id_analysis" value="{{act_id}}">
+      <input class="modal-input" type="text" name="new_title" value="{{row[2]}}" placeholder="New name" required>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeAllModals()">Cancel</button>
+        <button type="submit" class="btn-primary-solid">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="delete_{{act_id}}" class="modal">
+    <div class="modal-title">Delete activity?</div>
+    <p class="modal-sub"><strong>{{row[2]}}</strong> and its saved segments will be permanently removed.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" onclick="closeAllModals()">Cancel</button>
+      <form method="POST" action="/delete_file">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="supression" value="{{act_id}}">
+        <button class="btn-danger-solid" type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+
+  {%for seg in segments_by_activity[act_id]%}
+  {%set seg_id = seg[0]%}
+  <div id="seg_del_{{seg_id}}" class="modal">
+    <div class="modal-title">Delete segment?</div>
+    <p class="modal-sub"><strong>{{seg[1]}}</strong> will be permanently removed.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" onclick="closeAllModals()">Cancel</button>
+      <form method="POST" action="/delete_segment">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="supression" value="{{seg_id}}">
+        <input type="hidden" name="from_history" value="1">
+        <button class="btn-danger-solid" type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+  {%endfor%}
+  {%endfor%}
+
+  <!-- Bulk delete confirm -->
+  <div id="bulk-delete-modal" class="modal">
+    <div class="modal-title">Delete <span id="bulk-modal-count">0</span> activities?</div>
+    <p class="modal-sub">The selected activities and their saved segments will be permanently removed.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" onclick="closeAllModals()">Cancel</button>
+      <button type="button" class="btn-danger-solid" onclick="submitBulkDelete()">Delete</button>
+    </div>
+  </div>
+
   <script>
-    function openModal(modalId, overlayId) {
-      document.getElementById(modalId).style.display = 'block';
-      document.getElementById(overlayId).style.display = 'block';
+    var CSRF = "{{ csrf_token() }}";
+    var selectMode = false;
+
+    function openModal(id) {
+      document.getElementById('modal-overlay').classList.add('show');
+      document.getElementById(id).classList.add('show');
     }
-    function closeModal(modalId, overlayId) {
-      document.getElementById(modalId).style.display = 'none';
-      document.getElementById(overlayId).style.display = 'none';
+    function closeAllModals() {
+      document.getElementById('modal-overlay').classList.remove('show');
+      document.querySelectorAll('.modal.show').forEach(function(m) { m.classList.remove('show'); });
+    }
+
+    function rowNav(url, actId) {
+      if (selectMode) {
+        var c = document.querySelector('.row-check[value="' + actId + '"]');
+        if (c) { c.checked = !c.checked; updateBulkBar(); }
+        return;
+      }
+      window.location = url;
     }
 
     function toggleSegments(actId) {
@@ -329,6 +449,48 @@
         document.getElementById('segs_' + actId).style.display = 'none';
         if (show === false) document.getElementById('vsBtn_' + actId).classList.remove('open');
       });
+    }
+
+    /* ---- Select mode + bulk delete ---- */
+    function toggleSelectMode() {
+      selectMode = !selectMode;
+      document.body.classList.toggle('select-mode', selectMode);
+      var btn = document.getElementById('select-btn');
+      btn.textContent = selectMode ? 'Done' : 'Select';
+      btn.classList.toggle('active', selectMode);
+      if (!selectMode) clearSelection();
+    }
+    function clearSelection() {
+      document.querySelectorAll('.row-check').forEach(function(c) { c.checked = false; });
+      updateBulkBar();
+    }
+    function updateBulkBar() {
+      var n = document.querySelectorAll('.row-check:checked').length;
+      document.getElementById('bulk-count').textContent = n;
+      document.getElementById('bulk-delete-btn').disabled = n === 0;
+    }
+    function openBulkDeleteModal() {
+      var n = document.querySelectorAll('.row-check:checked').length;
+      if (!n) return;
+      document.getElementById('bulk-modal-count').textContent = n;
+      openModal('bulk-delete-modal');
+    }
+    function submitBulkDelete() {
+      var ids = Array.prototype.slice.call(document.querySelectorAll('.row-check:checked')).map(function(c) { return c.value; });
+      if (!ids.length) return;
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/delete_files';
+      var csrf = document.createElement('input');
+      csrf.type = 'hidden'; csrf.name = '_csrf'; csrf.value = CSRF;
+      form.appendChild(csrf);
+      ids.forEach(function(id) {
+        var i = document.createElement('input');
+        i.type = 'hidden'; i.name = 'ids'; i.value = id;
+        form.appendChild(i);
+      });
+      document.body.appendChild(form);
+      form.submit();
     }
   </script>
 

@@ -195,3 +195,23 @@ def f_delete_route():
     if os.path.exists(gpx_path):
         os.remove(gpx_path)
     return redirect('/routes')
+
+
+@bp.route('/delete_routes', methods=['POST'])
+def f_delete_routes():
+    """Claude_f_delete_routes: bulk-delete the current user's routes (with their GPX files).
+    Ids the user doesn't own are silently skipped."""
+    ids = request.form.getlist('ids')
+    uid = current_user_id()
+    removed = []
+    with get_db() as conn:
+        cursor = conn.cursor()
+        for rid in ids:
+            if user_owns_route(conn, uid, rid):
+                cursor.execute('DELETE FROM gpx WHERE id_route = ?', (rid,))
+                removed.append(rid)
+    for rid in removed:
+        gpx_path = _route_path(uid, rid)
+        if os.path.exists(gpx_path):
+            os.remove(gpx_path)
+    return redirect('/routes')

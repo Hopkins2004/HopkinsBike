@@ -1,39 +1,32 @@
-# Progress — "Sign in with Google" (2026-07-05)
+# Progress — tasks.md items 8, 9, 10 (2026-07-05)
 
-Add Google sign-in alongside the existing email/password login. Baseline: 25/25 tests pass.
+UI pass on the activities (history) and routes tables. Baseline: 33/33 tests pass.
 
-## Approach
-OAuth 2.0 authorization-code flow implemented with the Python **standard library**
-(`urllib`) — no new dependency, so tests/dev keep working offline and nothing to install.
-1. `/login/google` → generate a `state` (stored in session), redirect to Google's auth endpoint
-   with `scope=openid email profile`.
-2. `/login/google/callback` → verify `state`, exchange `code` for tokens at Google's token
-   endpoint (server-to-server, uses the client secret), then call Google's OIDC `userinfo`
-   endpoint with the access token to get the verified email.
-3. Find-or-create the user by email (Google verifies the email, so linking by email is safe),
-   set `session['username']`, redirect to /history.
+## Task 10 — routes default to "New Route"
+GPX upload stored the filename as the title. Change it to `'New Route'` (mirrors the FIT flow's
+`'New Activity'`), and make the routes-table fallback for a missing title show "New Route" too.
 
-## Details / decisions
-- Config: `HOPKINS_GOOGLE_CLIENT_ID` / `HOPKINS_GOOGLE_CLIENT_SECRET` (both empty by default).
-  Google sign-in is enabled only when both are set; the button and routes no-op otherwise.
-- New Google users get an **unusable** password hash (`generate_password_hash` of a random
-  token) so the password-login path can never match — they must use Google.
-- Routes are always registered (button hidden via `google_enabled` when unconfigured), so the
-  URL map is deterministic → regenerate the urlmap fixture once.
-- Security: `state` (CSRF) checked on callback; token/userinfo calls over TLS; `email_verified`
-  required; callbacks are GET so the existing CSRF-on-POST guard is unaffected; SameSite=Lax lets
-  the state cookie survive Google's top-level redirect back.
-- UI: "Sign in with Google" button (official 4-colour G) under the form on login + register,
-  shown only when configured. Styles added to static/login.css (shared by both pages).
+## Task 8 — sleeker delete pop-ups, no bin image
+Redesign the delete (and rename) modals in history.html + routes.html into one clean system:
+rounded card, dimmed+blurred single shared overlay, title + subtitle + a pill "Cancel"/"Delete"
+pair. Drop the `bin.png` image (only the activity-delete modal used it). Fitness-app aesthetic:
+soft shadows, rounded pills, subtle pop-in.
+
+## Task 9 — multi-select + bulk delete
+Add a "Select" toggle (top-right of each table's filter bar). In select mode a checkbox column
+appears on the right of the table and a bulk-action bar shows "N selected" + "Delete selected".
+Confirming opens the sleek modal, then a JS-built POST submits the checked ids to new endpoints:
+- `/delete_files` (activities): delete each owned activity + its segments + FIT file.
+- `/delete_routes` (routes): delete each owned route + its GPX file.
+Both reuse the existing ownership checks; ids the user doesn't own are skipped. Row-click navigates
+normally but toggles the checkbox while in select mode. URL map gains 2 routes → regenerate fixture.
 
 ## Verification — DONE
-- tests/test_google_auth.py (6 new): disabled-by-default guard + hidden button; button shown when
-  configured; /login/google redirects to accounts.google.com with correct client_id/scope and the
-  state matching the session; bad-state callback blocked (not signed in); happy path (userinfo
-  mocked) provisions a verified 'user' and sets the session; a Google login for an existing email
-  links to that account (no duplicate). Full suite: 31/31 pass.
-- Browser: /login with Google configured renders the 4-colour Google button under an "or" divider;
-  clicking it navigates all the way to accounts.google.com (errors only because the demo client id
-  is fake — the redirect wiring is correct). Unconfigured app is unchanged (no button).
-- urlmap fixture regenerated (+/login/google, +/login/google/callback).
-- README documents the two env vars and the Google Cloud Console setup steps.
+- New tests (3): bulk delete of activities removes only owned rows + cascades segments and ignores
+  another user's id; same for routes; GPX upload titles the route "New Route". Suite: 36/36 pass.
+  urlmap fixture regenerated (+/delete_files, +/delete_routes).
+- Browser E2E (11/11 checks, no page errors): 3 activities uploaded; delete modal is the new sleek
+  card with Cancel/Delete pills and NO bin image / no <img>; Select mode reveals the right-hand
+  checkbox column + bulk bar counting "2 selected"; bulk-delete confirm modal shows the count;
+  2 deleted / 1 remains; routes list shows "New Route"; route bulk-delete empties the list.
+  Screenshots reviewed — clean fitness-app aesthetic.

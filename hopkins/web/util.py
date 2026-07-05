@@ -9,8 +9,10 @@ from ..db import get_db
 
 
 def encode_q(start, end, data_str):
-    """Claude_encode_q: encode start/end/data into a single urlsafe base64 token"""
-    payload = json.dumps({'s': int(start), 'e': int(end), 'd': str(data_str)}, separators=(',', ':'))
+    """Claude_encode_q: encode start/end/data into a single urlsafe base64 token.
+    A None bound (e.g. an activity whose length was never recorded because its upload never
+    finished) coerces to 0, so one incomplete row can't 500 a whole page of links."""
+    payload = json.dumps({'s': int(start or 0), 'e': int(end or 0), 'd': str(data_str)}, separators=(',', ':'))
     return base64.urlsafe_b64encode(payload.encode()).decode().rstrip('=')
 
 

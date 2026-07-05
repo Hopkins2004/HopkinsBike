@@ -30,7 +30,19 @@
   ]
  ],
  [
+  "/delete_files",
+  [
+   "POST"
+  ]
+ ],
+ [
   "/delete_route",
+  [
+   "POST"
+  ]
+ ],
+ [
+  "/delete_routes",
   [
    "POST"
   ]

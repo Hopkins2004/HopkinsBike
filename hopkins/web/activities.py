@@ -100,8 +100,7 @@ def f_upload():
         try:
             with get_db() as conn:
                 cursor = conn.cursor()
-                original_name = file.filename.rsplit('.', 1)[0]
-                cursor.execute("INSERT INTO gpx (id_user, title) VALUES (?, ?)", (iduser, original_name))
+                cursor.execute("INSERT INTO gpx (id_user, title) VALUES (?, ?)", (iduser, 'New Route'))
                 idroute = cursor.lastrowid
                 filename = _route_path(iduser, idroute)
                 file.save(filename)
@@ -529,6 +528,27 @@ def f_delete_file():
     fit_path = _activity_path(uid, file)
     if os.path.exists(fit_path):
         os.remove(fit_path)
+    return redirect('/history')
+
+
+@bp.route('/delete_files', methods=['POST'])
+def f_delete_files():
+    """Claude_f_delete_files: bulk-delete the current user's activities (with their segments
+    and FIT files). Ids the user doesn't own are silently skipped."""
+    ids = request.form.getlist('ids')
+    uid = current_user_id()
+    removed = []
+    with get_db() as conn:
+        cursor = conn.cursor()
+        for fid in ids:
+            if user_owns_activity(conn, uid, fid):
+                cursor.execute('DELETE FROM segments WHERE id_analysis = ?', (fid,))
+                cursor.execute('DELETE FROM files WHERE id_analysis = ?', (fid,))
+                removed.append(fid)
+    for fid in removed:
+        fit_path = _activity_path(uid, fid)
+        if os.path.exists(fit_path):
+            os.remove(fit_path)
     return redirect('/history')
 
 

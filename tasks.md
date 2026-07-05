@@ -7,6 +7,8 @@
 - [x] Task 5 : In new_segment, the peucker_douglas is limited to 5 segments. Hwever, when a segment is seen in view_segment, the peucker douglas shown contains more segments. Unify both these elements such that all display the same amount of segments : to do so, add a cutoff for the elevation diff of a newly created segment (same as with the current new_segment, but without a 5 segment limit.)
 - [x] Task 6 : The small red marker on the map moves way smoother in view_segment compared to new_segment. This can be caused either by just data management, or by just various approaches. Please do your best to diagnose and fix
 - [x] Task 7 : in view_segments, the comment field now appears twice (on top, and below the parameters). Remove it from the parameters box.
-
+- [x] Task 8 : change the delete activity or delete route pop up, to be more ergonomic and aligned with fitness website aethetic codes : more sleek, no bin image, etc
+- [x] Task 9 : add selector tool (select option on top right of activity list or route list). If clicked, it opens a row of checkboxes on the right of the relevant table, and all checked instances can be removed, or similarly changed.
+- [x] Task 10 : by default, name make routes names appear as "New Route" in the routes table
 
 
