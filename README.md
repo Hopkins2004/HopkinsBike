@@ -31,11 +31,37 @@ tests/                  physics golden, url-map, auth/IDOR, route-flow
 run.py                  dev entry point
 ```
 
-## Run
+## Run (local dev)
 ```bash
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python run.py            # serves on http://127.0.0.1:5000
 ```
+
+## Deploy to Render
+The app ships a WSGI entry point (`wsgi.py`) and is served by **gunicorn** in production.
+`.python-version` pins the interpreter; `create_app()` runs behind Render's TLS proxy via
+`ProxyFix`, so HTTPS URLs (and the Google OAuth `redirect_uri`) resolve correctly.
+
+Create a **Web Service** from the GitHub repo, then set:
+
+| Field | Value |
+|-------|-------|
+| **Build Command** | `pip install -r requirements.txt` |
+| **Start Command** | `gunicorn wsgi:app --bind 0.0.0.0:$PORT` |
+
+Set these environment variables in the Render dashboard (Environment tab):
+
+- `HOPKINS_SECRET` — a strong random string (`python -c "import secrets;print(secrets.token_hex(32))"`)
+- `HOPKINS_HTTPS=1` — Render serves over TLS, so mark the session cookie Secure
+- `HOPKINS_MAPS_KEY` — your Google Maps JS key
+- `HOPKINS_GOOGLE_CLIENT_ID` / `HOPKINS_GOOGLE_CLIENT_SECRET` — only if using Google sign-in;
+  register `https://<your-service>.onrender.com/login/google/callback` as the redirect URI
+  (and `https://<your-service>.onrender.com` as an authorised origin) in the Google console.
+
+**Persistent storage (important):** Render's default filesystem is ephemeral, so the SQLite DB
+and uploaded files are wiped on every deploy/restart. To keep data, add a **Disk** (e.g. mounted
+at `/var/data`) and point storage at it: `HOPKINS_DB=/var/data/data.db` and
+`HOPKINS_UPLOADS=/var/data/uploads` (the app creates these directories on start).
 
 ### Configuration (environment variables, all optional)
 | var | default | purpose |

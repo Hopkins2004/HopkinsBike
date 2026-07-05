@@ -47,6 +47,18 @@ def create_app(config_object=Config):
     app.config.from_object(config_object)
     app.secret_key = app.config['SECRET_KEY']
 
+    # Behind a TLS-terminating proxy (Render, etc.) trust its forwarding headers so that
+    # request.scheme/host — and therefore url_for(..., _external=True), which builds the
+    # Google OAuth redirect URI — resolve to the real https:// public URL, not http://.
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Make sure the data directories exist (fresh deploy or a mounted persistent disk).
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    db_dir = os.path.dirname(app.config['DB_PATH'])
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+
     # CORS only when explicitly configured (default: same-origin, no wide-open header).
     if app.config.get('CORS_ORIGINS'):
         from flask_cors import CORS
