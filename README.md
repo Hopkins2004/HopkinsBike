@@ -55,3 +55,4 @@ run.py                  dev entry point
 - `test_urlmap.py` — the public URL/method surface is unchanged.
 - `test_auth_idor.py` — login enforcement + cross-user access blocked.
 - `test_route_flow.py` — register → login → view/estimate a GPX route end-to-end.
+# HopkinsBike
