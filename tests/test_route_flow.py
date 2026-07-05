@@ -7,29 +7,14 @@ and that the estimate page reports a finishing time.
 import os
 import shutil
 
-import pytest
-
-from hopkins import create_app
-from hopkins.config import Config
 from hopkins.db import get_db
 
 HERE = os.path.dirname(__file__)
 GPXF = os.path.join(HERE, "fixtures", "synthetic.gpx")
 
 
-@pytest.fixture
-def app(tmp_path):
-    class C(Config):
-        DB_PATH = str(tmp_path / "t.db")
-        UPLOAD_FOLDER = str(tmp_path / "up")
-        SECRET_KEY = "test"
-    os.makedirs(C.UPLOAD_FOLDER, exist_ok=True)
-    return create_app(C)
-
-
-def test_full_route_flow(app):
-    client = app.test_client()
-    client.post("/register", data={"email": "rider@x.com", "password": "pw"})
+def test_full_route_flow(app, client):
+    client.post("/register", data={"email": "rider@x.com", "password": "password123"})
     with app.app_context():
         with get_db() as conn:
             uid = conn.execute("SELECT id_user FROM users WHERE email='rider@x.com'").fetchone()[0]
@@ -39,7 +24,7 @@ def test_full_route_flow(app):
     # place the GPX where the route routes expect it
     shutil.copy(GPXF, os.path.join(app.config["UPLOAD_FOLDER"], f"Route{uid}_{rid}.gpx"))
 
-    client.post("/login", data={"email": "rider@x.com", "password": "pw"})
+    client.post("/login", data={"email": "rider@x.com", "password": "password123"})
 
     r = client.get("/routes")
     assert r.status_code == 200

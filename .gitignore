@@ -5,6 +5,7 @@ __pycache__/
 
 # Local databases & user uploads (runtime data, not source)
 *.db
+*.db.bak*
 data/uploads/*
 !data/uploads/.gitkeep
 

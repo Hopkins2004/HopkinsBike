@@ -183,7 +183,7 @@ def f_rename_route():
 
 @bp.route('/delete_route', methods=['POST'])
 def f_delete_route():
-    """Claude_f_delete_route: remove route from DB (file stays on disk)"""
+    """Claude_f_delete_route: remove route from DB and its GPX file from disk"""
     id_route = request.form['id_route']
     uid = current_user_id()
     with get_db() as conn:
@@ -191,4 +191,7 @@ def f_delete_route():
             return redirect('/routes')
         cursor = conn.cursor()
         cursor.execute('DELETE FROM gpx WHERE id_route = ?', (id_route,))
+    gpx_path = _route_path(uid, id_route)
+    if os.path.exists(gpx_path):
+        os.remove(gpx_path)
     return redirect('/routes')

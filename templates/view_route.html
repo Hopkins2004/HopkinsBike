@@ -295,6 +295,7 @@
       <div class="form-card">
         <h3>Parameters</h3>
         <form method="POST" action="/calculate_route">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="user" value="{{user}}">
           <input type="hidden" name="id_route" value="{{id_route}}">
           <div class="field">
@@ -348,6 +349,7 @@
         </div>
       </div>
       <form method="POST" action="/toptube_pdf" target="_blank" style="margin-top:10px;">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="user" value="{{user}}">
         <input type="hidden" name="id_route" value="{{id_route}}">
         <input type="hidden" name="cda_flat" value="{{form_vals.cda_flat}}">

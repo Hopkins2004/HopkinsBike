@@ -134,6 +134,7 @@
           <div id="rename_{{rid}}" class="modal">
             <h3>Rename Route</h3>
             <form method="POST" action="/rename_route">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
               <input type="hidden" name="id_route" value="{{rid}}">
               <input class="rename-input" type="text" name="new_title" value="{{row[1] or ''}}" placeholder="New name" required>
               <div class="modal-actions">
@@ -151,6 +152,7 @@
             <div class="modal-actions">
               <button class="btn-close" onclick="closeModal('delete_{{rid}}','overlay_delete_{{rid}}')">Cancel</button>
               <form method="POST" action="/delete_route">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                 <input type="hidden" name="id_route" value="{{rid}}">
                 <button class="btn-submit" style="background:#b71c1c;" type="submit">Delete</button>
               </form>

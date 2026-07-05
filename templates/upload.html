@@ -137,7 +137,14 @@
       <h2>Upload Activity</h2>
       <p>Supports .fit and .gpx files</p>
 
+      {% with messages = get_flashed_messages(category_filter=['error']) %}
+        {% if messages %}
+        <div style="background:#fdecea;color:#b71c1c;border:1px solid #f5c6cb;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:0.9rem;">{{ messages[0] }}</div>
+        {% endif %}
+      {% endwith %}
+
       <form method="POST" action="/upload" enctype="multipart/form-data" id="upload-form">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file').click()">
           <div class="drop-icon">&#8679;</div>
           <div class="drop-zone-label">Drag &amp; drop your file here, or <strong>browse</strong></div>

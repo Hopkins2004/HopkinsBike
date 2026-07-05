@@ -1,25 +1,10 @@
-"""Static / chrome pages: root redirect, home, explainer pages, file serving, close window."""
-import os
-
-from flask import (Blueprint, current_app, redirect, render_template,
-                   render_template_string, send_file, send_from_directory, url_for)
+"""Static / chrome pages: root redirect, home, explainer pages, close window."""
+from flask import (Blueprint, redirect, render_template,
+                   render_template_string, url_for)
 
 from .util import fetch_role
 
 bp = Blueprint('pages', __name__)
-
-
-@bp.route('/download/<path:document_path>', methods=['GET'])
-def f_download_document(document_path):
-    """Claude_f_download_document: serve a generated PDF from the uploads folder."""
-    return send_file(os.path.join(current_app.config['UPLOAD_FOLDER'], document_path + '.pdf'),
-                     as_attachment=True)
-
-
-@bp.route('/uploads/<path:filename>')
-def show_file(filename):
-    """Claude_show_file: serve a stored upload by filename."""
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
 
 @bp.route('/')

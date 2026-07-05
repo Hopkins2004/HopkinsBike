@@ -83,5 +83,13 @@ def init_db(db_path):
     if not _column_exists(cursor, 'users', 'verified'):
         cursor.execute('ALTER TABLE users ADD COLUMN verified INTEGER DEFAULT 1')
 
+    # Emails must be unique or login resolves to an arbitrary duplicate. Fails (and is
+    # skipped with a warning) only if a pre-existing DB already holds duplicates.
+    try:
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)')
+    except sqlite3.IntegrityError:
+        print('WARNING: duplicate emails in users table; unique index not created. '
+              'Deduplicate users(email) manually.')
+
     conn.commit()
     conn.close()

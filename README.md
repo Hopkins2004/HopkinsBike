@@ -46,6 +46,20 @@ run.py                  dev entry point
 | `HOPKINS_MAPS_KEY` | (shipped key) | Google Maps JS key — set & restrict by referrer in prod |
 | `HOPKINS_DEBUG` | `0` | `1` enables the Werkzeug debugger (dev only) |
 | `HOPKINS_CORS_ORIGINS` | (none) | comma-separated allowed CORS origins; empty = same-origin only |
+| `HOPKINS_HTTPS` | `0` | `1` marks the session cookie Secure (set behind TLS) |
+| `HOPKINS_GOOGLE_CLIENT_ID` | (none) | Google OAuth client ID — set with the secret to enable "Sign in with Google" |
+| `HOPKINS_GOOGLE_CLIENT_SECRET` | (none) | Google OAuth client secret |
+
+#### Enabling Google sign-in
+1. [console.cloud.google.com](https://console.cloud.google.com) → create/select a project.
+2. **APIs & Services → OAuth consent screen**: pick *External*, add app name + support email,
+   and add your email as a *Test user* (keeps the app in testing mode — no verification needed).
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
+   - Authorised JavaScript origins: `http://127.0.0.1:5000` (add your prod origin too).
+   - Authorised redirect URIs: `http://127.0.0.1:5000/login/google/callback` (and the prod
+     equivalent, e.g. `https://your-domain/login/google/callback`).
+4. Copy the client ID + secret into `HOPKINS_GOOGLE_CLIENT_ID` / `HOPKINS_GOOGLE_CLIENT_SECRET`
+   and restart. The button appears automatically once both are set.
 
 ## Tests
 ```bash

@@ -20,3 +20,15 @@ class Config:
     DEBUG = os.environ.get('HOPKINS_DEBUG', '0') == '1'
     # Comma-separated list of allowed CORS origins; empty = same-origin only (no CORS header).
     CORS_ORIGINS = [o for o in os.environ.get('HOPKINS_CORS_ORIGINS', '').split(',') if o]
+    # Session cookie hardening: not readable from JS, not sent on cross-site POSTs.
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    # Set HOPKINS_HTTPS=1 behind TLS so the session cookie is never sent in clear.
+    SESSION_COOKIE_SECURE = os.environ.get('HOPKINS_HTTPS', '0') == '1'
+    # Uploads are single .fit/.gpx files; 32 MB is far above any real activity.
+    MAX_CONTENT_LENGTH = 32 * 1024 * 1024
+    # Google sign-in (OAuth 2.0). Set both to enable the "Sign in with Google" button; when
+    # either is empty the feature stays off. Create these in Google Cloud Console → APIs &
+    # Services → Credentials → OAuth 2.0 Client ID (Web application).
+    GOOGLE_CLIENT_ID = os.environ.get('HOPKINS_GOOGLE_CLIENT_ID', '')
+    GOOGLE_CLIENT_SECRET = os.environ.get('HOPKINS_GOOGLE_CLIENT_SECRET', '')

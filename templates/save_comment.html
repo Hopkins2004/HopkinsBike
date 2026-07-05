@@ -229,6 +229,7 @@
     <div class="card">
       <h2>Save Segment</h2>
       <form method="POST" action="/save_segment">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="iduser" value="{{params_meta.user}}">
         <input type="hidden" name="idactivity" value="{{params_meta.id_act}}">
         <input type="hidden" name="crr" value="{{params_meta.crr}}">

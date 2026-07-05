@@ -1,8 +1,9 @@
 """Hopkins — bike aero analyser. Application factory + package root."""
 import json
 import os
+import secrets
 
-from flask import Flask
+from flask import Flask, abort, request, session
 
 from .config import Config
 from .db import init_db
@@ -12,7 +13,7 @@ from .web.util import encode_q, fetch_role
 page_permissions = {
     'guest': ['/home', '/login', '/register'],
     'user': ['/history', '/routes', '/upload', '/logout'],
-    'admin': ['/history', '/routes', '/upload', '/insights', '/logout'],
+    'admin': ['/history', '/routes', '/upload', '/logout'],
 }
 
 # Display names for each page.
@@ -24,9 +25,14 @@ page_titles = {
     '/history': 'Activities',
     '/routes': 'Routes',
     '/upload': 'Upload',
-    '/gpx_sim': 'Simulations',
-    '/insights': 'Admin Stuff',
 }
+
+
+def csrf_token():
+    """Claude_csrf_token: per-session anti-CSRF token, created lazily on first use."""
+    if '_csrf' not in session:
+        session['_csrf'] = secrets.token_hex(16)
+    return session['_csrf']
 
 
 def create_app(config_object=Config):
@@ -59,7 +65,19 @@ def create_app(config_object=Config):
             'page_permissions': page_permissions,
             'page_titles': page_titles,
             'maps_api_key': app.config['MAPS_API_KEY'],
+            'csrf_token': csrf_token,
+            'google_enabled': bool(app.config.get('GOOGLE_CLIENT_ID') and app.config.get('GOOGLE_CLIENT_SECRET')),
         }
+
+    @app.before_request
+    def csrf_protect():
+        """Claude_csrf_protect: reject any POST whose _csrf field doesn't match the
+        session token. All state changes go through POST forms, so this covers them."""
+        if request.method == 'POST':
+            token = session.get('_csrf')
+            sent = request.form.get('_csrf')
+            if not token or not sent or not secrets.compare_digest(token, sent):
+                abort(400, description='Invalid or missing CSRF token.')
 
     from .web.auth import bp as auth_bp
     from .web.pages import bp as pages_bp

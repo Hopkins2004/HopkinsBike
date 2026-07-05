@@ -233,7 +233,7 @@
     var segEnd   = {{end}};
 
     let map;
-    let markers = [];
+    let hoverMarker = null;
 
     // TASK-009: auto zoom using fitBounds
     function fitBoundsToSegment(i, j) {
@@ -242,6 +242,23 @@
         bounds.extend(latlng);
       });
       map.fitBounds(bounds);
+    }
+
+    // Endpoint markers (Task 2): green round dot for start, checkered dot for finish.
+    function startIcon() {
+      return { path: google.maps.SymbolPath.CIRCLE, fillColor: '#2e9e4f', fillOpacity: 1,
+               strokeColor: '#fff', strokeWeight: 2, scale: 7 };
+    }
+    function finishIcon() {
+      var cells = '';
+      for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++)
+        if ((r + c) % 2 === 0) cells += '<rect x="' + (c*6) + '" y="' + (r*6) + '" width="6" height="6" fill="#000"/>';
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18">' +
+        '<defs><clipPath id="cp"><circle cx="9" cy="9" r="8.5"/></clipPath></defs>' +
+        '<g clip-path="url(#cp)"><rect width="18" height="18" fill="#fff"/>' + cells + '</g>' +
+        '<circle cx="9" cy="9" r="8.5" fill="none" stroke="#333" stroke-width="1.2"/></svg>';
+      return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+               scaledSize: new google.maps.Size(18, 18), anchor: new google.maps.Point(9, 9) };
     }
 
     function draw(i, j) {
@@ -258,23 +275,35 @@
         strokeWeight: 3,
       });
       flightPath.setMap(map);
+      var startPt = flightPlanCoordinates[i];
+      var endPt = flightPlanCoordinates[Math.min(j, flightPlanCoordinates.length) - 1];
+      if (startPt) new google.maps.Marker({ position: startPt, map: map, icon: startIcon(), title: 'Start', zIndex: 5 });
+      if (endPt) new google.maps.Marker({ position: endPt, map: map, icon: finishIcon(), title: 'Finish', zIndex: 5 });
       fitBoundsToSegment(i, j);
     }
 
+    // Task 6: reuse ONE marker and only move it (setPosition), instead of destroying and
+    // rebuilding a google.maps.Marker on every mousemove — that overlay churn is what made
+    // the dot lag/flicker here versus the smooth persistent marker in view_segment.
     function addMarker(lat, lng) {
-      markers.forEach(function(m) { m.setMap(null); });
-      const marker = new google.maps.Marker({
-        position: { lat: lat, lng: lng },
-        map: map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#FF0000',
-          fillOpacity: 1,
-          strokeWeight: 0,
-          scale: 7,
-        },
-      });
-      markers = [marker];
+      var pos = { lat: lat, lng: lng };
+      if (!hoverMarker || hoverMarker.getMap() !== map) {
+        if (hoverMarker) hoverMarker.setMap(null);
+        hoverMarker = new google.maps.Marker({
+          position: pos,
+          map: map,
+          zIndex: 10,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: '#FF0000',
+            fillOpacity: 1,
+            strokeWeight: 0,
+            scale: 7,
+          },
+        });
+      } else {
+        hoverMarker.setPosition(pos);
+      }
     }
 
     function initMap() {
@@ -328,7 +357,6 @@
 
     var xMax = distSlice.length ? distSlice[distSlice.length - 1] : 1;
     var xScaleDist = d3.scaleLinear().domain([0, xMax]).range([0, innerW]);
-    var xScalePower = xScaleDist; // alias used by calculate()
 
     function kmFmt(d) { return (d / 1000).toFixed(2) + ' km'; }
 
@@ -349,11 +377,33 @@
     }
     function hideTooltip() { hoverDiv.style.display = 'none'; }
 
-    // Helper: build a simple chart and return svg g + grey rect refs
-    function buildSimpleChart(containerId, data, color, fillColor) {
-      var yMin = d3.min(data, function(d) { return d.y; }) * 0.97;
-      var yMax = (d3.max(data, function(d) { return d.y; }) || 1) * 1.1;
-      var yScale = d3.scaleLinear().domain([yMin, yMax]).range([innerH, 0]);
+    // Task 4: every chart is brush-selectable. One builder gives all three the same
+    // area+line, hover (crosshair/dot/tooltip/map-marker) and a d3 brush whose selection
+    // greys all three charts and, on release, zooms into the sub-range.
+    var greyPairs = [];
+
+    function applySelectionOverlay(sel) {
+      greyPairs.forEach(function(pair) {
+        if (sel) {
+          pair[0].attr('x', 0).attr('width', sel[0]);
+          pair[1].attr('x', sel[1]).attr('width', innerW - sel[1]);
+        } else {
+          pair[0].attr('width', 0); pair[1].attr('width', 0);
+        }
+      });
+    }
+
+    function brushEnd(event) {
+      if (event.selection) {
+        var range = event.selection.map(xScaleDist.invert);
+        window.location.href = '/new_segment?q=' + encodeQ(segStart + distToIdx(range[0]), segStart + distToIdx(range[1]), {{parameters}});
+      } else {
+        window.location.href = '/new_segment?q=' + encodeQ(0, {{total_length}}, {{parameters}});
+      }
+    }
+
+    function buildChart(containerId, data, color, fillColor, yDomain) {
+      var yScale = d3.scaleLinear().domain(yDomain).range([innerH, 0]);
       var g = d3.select('#' + containerId).append('svg')
         .attr('width', chartW).attr('height', chartH)
         .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
@@ -365,129 +415,45 @@
       g.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + innerH + ')')
         .call(d3.axisBottom(xScaleDist).ticks(6).tickFormat(kmFmt));
       g.append('g').attr('class', 'axis').call(d3.axisLeft(yScale).ticks(4));
+
       var gL = g.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
       var gR = g.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
       var xh = g.append('line').attr('y1', 0).attr('y2', innerH)
         .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,2').style('display', 'none');
       var dot = g.append('circle').attr('r', 3.5).attr('fill', color).style('display', 'none');
-      g.append('rect').attr('width', innerW).attr('height', innerH).attr('fill', 'none').attr('pointer-events', 'all')
-        .on('mousemove', function(event) {
-          var idx = distToIdx(xScaleDist.invert(d3.pointer(event)[0]));
-          var cx = xScaleDist(data[idx].x);
-          xh.attr('x1', cx).attr('x2', cx).style('display', null);
-          dot.attr('cx', cx).attr('cy', yScale(data[idx].y)).style('display', null);
-          var coord = allCoords[segStart + idx]; if (coord) addMarker(coord[0], coord[1]);
-          showTooltip(event, idx);
-        })
-        .on('mouseleave', function() { xh.style('display', 'none'); dot.style('display', 'none'); hideTooltip(); });
+
+      var brush = d3.brushX().extent([[0, 0], [innerW, innerH]])
+        .on('brush', function(event) { applySelectionOverlay(event.selection); })
+        .on('end', brushEnd);
+      g.append('g').attr('class', 'brush').call(brush);
+
+      // Hover on the parent g (not a separate top rect) so the brush overlay doesn't block it.
+      g.on('mousemove', function(event) {
+        var mx = d3.pointer(event)[0];
+        if (mx < 0 || mx > innerW) return;
+        var idx = distToIdx(xScaleDist.invert(mx));
+        var cx = xScaleDist(data[idx].x);
+        xh.attr('x1', cx).attr('x2', cx).style('display', null);
+        dot.attr('cx', cx).attr('cy', yScale(data[idx].y)).style('display', null);
+        var coord = allCoords[segStart + idx]; if (coord) addMarker(coord[0], coord[1]);
+        showTooltip(event, idx);
+      }).on('mouseleave', function() { xh.style('display', 'none'); dot.style('display', 'none'); hideTooltip(); });
+
       return { g: g, yScale: yScale, gL: gL, gR: gR };
     }
 
-    // ---- Power chart (with brush + hover) ----
-    var yScalePower = d3.scaleLinear()
-      .domain([0, (d3.max(powerData, function(d) { return d.y; }) || 500) * 1.1])
-      .range([innerH, 0]);
+    var powerResult = buildChart('power-chart', powerData, '#478ac9', 'rgba(71,138,201,0.18)',
+      [0, (d3.max(powerData, function(d) { return d.y; }) || 500) * 1.1]);
+    var speedResult = buildChart('speed-chart', speedData, '#9c27b0', 'rgba(156,39,176,0.12)',
+      [d3.min(speedData, function(d) { return d.y; }) * 0.97, (d3.max(speedData, function(d) { return d.y; }) || 1) * 1.1]);
+    var elevResult = buildChart('elevation-chart', elevData, '#388e3c', 'rgba(56,142,60,0.15)',
+      [d3.min(elevData, function(d) { return d.y; }) * 0.97, (d3.max(elevData, function(d) { return d.y; }) || 1) * 1.03]);
 
-    var svgPower = d3.select('#power-chart').append('svg')
-      .attr('width', chartW).attr('height', chartH)
-      .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-    svgPower.append('g').attr('class', 'grid').call(d3.axisLeft(yScalePower).tickSize(-innerW).tickFormat(''));
-    svgPower.append('path').datum(powerData).attr('fill', 'rgba(71,138,201,0.18)')
-      .attr('d', d3.area().x(function(d) { return xScaleDist(d.x); }).y0(innerH).y1(function(d) { return yScalePower(d.y); }));
-    svgPower.append('path').datum(powerData).attr('fill', 'none').attr('stroke', '#478ac9').attr('stroke-width', 1.5)
-      .attr('d', d3.line().x(function(d) { return xScaleDist(d.x); }).y(function(d) { return yScalePower(d.y); }));
-    svgPower.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + innerH + ')')
-      .call(d3.axisBottom(xScaleDist).ticks(6).tickFormat(kmFmt));
-    svgPower.append('g').attr('class', 'axis').call(d3.axisLeft(yScalePower).ticks(4));
-
-    var greyLeft  = svgPower.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
-    var greyRight = svgPower.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
-    var greySpeedLeft, greySpeedRight, greyElevLeft, greyElevRight;
-
-    function applySelectionOverlay(sel) {
-      var sets = [[greyLeft, greyRight], [greySpeedLeft, greySpeedRight], [greyElevLeft, greyElevRight]];
-      sets.forEach(function(pair) {
-        if (!pair[0]) return;
-        if (sel) {
-          pair[0].attr('x', 0).attr('width', sel[0]);
-          pair[1].attr('x', sel[1]).attr('width', innerW - sel[1]);
-        } else {
-          pair[0].attr('width', 0); pair[1].attr('width', 0);
-        }
-      });
-    }
-
-    var pwrXhair = svgPower.append('line').attr('y1', 0).attr('y2', innerH)
-      .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,2').style('display', 'none');
-    var pwrDot = svgPower.append('circle').attr('r', 3.5).attr('fill', '#478ac9').style('display', 'none');
-
-    var brush = d3.brushX()
-      .extent([[0, 0], [innerW, innerH]])
-      .on('brush', function(event) { applySelectionOverlay(event.selection); })
-      .on('end', function(event) {
-        if (event.selection) {
-          var range = event.selection.map(xScaleDist.invert);
-          window.location.href = '/new_segment?q=' + encodeQ(segStart + distToIdx(range[0]), segStart + distToIdx(range[1]), {{parameters}});
-        } else {
-          window.location.href = '/new_segment?q=' + encodeQ(0, {{total_length}}, {{parameters}});
-        }
-      });
-
-    svgPower.append('g').attr('class', 'brush').call(brush);
-
-    svgPower.on('mousemove', function(event) {
-      var mx = d3.pointer(event)[0];
-      if (mx < 0 || mx > innerW) return;
-      var idx = distToIdx(xScaleDist.invert(mx));
-      var cx = xScaleDist(powerData[idx].x);
-      pwrXhair.attr('x1', cx).attr('x2', cx).style('display', null);
-      pwrDot.attr('cx', cx).attr('cy', yScalePower(powerData[idx].y)).style('display', null);
-      var coord = allCoords[segStart + idx]; if (coord) addMarker(coord[0], coord[1]);
-      showTooltip(event, idx);
-    }).on('mouseleave', function() {
-      pwrXhair.style('display', 'none'); pwrDot.style('display', 'none'); hideTooltip();
-    });
-
-    // ---- Speed chart ----
-    var speedResult = buildSimpleChart('speed-chart', speedData, '#9c27b0', 'rgba(156,39,176,0.12)');
-    greySpeedLeft  = speedResult.gL;
-    greySpeedRight = speedResult.gR;
-
-    // ---- Elevation chart ----
-    var yScaleElev = d3.scaleLinear()
-      .domain([d3.min(elevData, function(d) { return d.y; }) * 0.97, (d3.max(elevData, function(d) { return d.y; }) || 1) * 1.03])
-      .range([innerH, 0]);
-
-    var svgElev = d3.select('#elevation-chart').append('svg')
-      .attr('width', chartW).attr('height', chartH)
-      .append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-    svgElev.append('g').attr('class', 'grid').call(d3.axisLeft(yScaleElev).tickSize(-innerW).tickFormat(''));
-    svgElev.append('path').datum(elevData).attr('fill', 'rgba(56,142,60,0.15)')
-      .attr('d', d3.area().x(function(d) { return xScaleDist(d.x); }).y0(innerH).y1(function(d) { return yScaleElev(d.y); }));
-    svgElev.append('path').datum(elevData).attr('fill', 'none').attr('stroke', '#388e3c').attr('stroke-width', 1.5)
-      .attr('d', d3.line().x(function(d) { return xScaleDist(d.x); }).y(function(d) { return yScaleElev(d.y); }));
-    svgElev.append('g').attr('class', 'axis').attr('transform', 'translate(0,' + innerH + ')')
-      .call(d3.axisBottom(xScaleDist).ticks(6).tickFormat(kmFmt));
-    svgElev.append('g').attr('class', 'axis').call(d3.axisLeft(yScaleElev).ticks(4));
-
-    greyElevLeft  = svgElev.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
-    greyElevRight = svgElev.append('rect').attr('y', 0).attr('height', innerH).attr('fill', 'rgba(200,200,200,0.45)').attr('width', 0);
-
-    var elevXhair = svgElev.append('line').attr('y1', 0).attr('y2', innerH)
-      .attr('stroke', '#999').attr('stroke-width', 1).attr('stroke-dasharray', '3,2').style('display', 'none');
-    var elevDot = svgElev.append('circle').attr('r', 3.5).attr('fill', '#388e3c').style('display', 'none');
-    svgElev.append('rect').attr('width', innerW).attr('height', innerH).attr('fill', 'none').attr('pointer-events', 'all')
-      .on('mousemove', function(event) {
-        var idx = distToIdx(xScaleDist.invert(d3.pointer(event)[0]));
-        var cx = xScaleDist(elevData[idx].x);
-        elevXhair.attr('x1', cx).attr('x2', cx).style('display', null);
-        elevDot.attr('cx', cx).attr('cy', yScaleElev(elevData[idx].y)).style('display', null);
-        var coord = allCoords[segStart + idx]; if (coord) addMarker(coord[0], coord[1]);
-        showTooltip(event, idx);
-      })
-      .on('mouseleave', function() { elevXhair.style('display', 'none'); elevDot.style('display', 'none'); hideTooltip(); });
+    greyPairs = [
+      [powerResult.gL, powerResult.gR],
+      [speedResult.gL, speedResult.gR],
+      [elevResult.gL, elevResult.gR]
+    ];
 
     // ---- Lap bars ----
     var lapBounds = {{lap_bounds}};

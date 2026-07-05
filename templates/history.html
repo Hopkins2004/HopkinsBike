@@ -242,6 +242,7 @@
                       <div class="modal-actions">
                         <button class="btn-close" onclick="closeModal('seg_del_{{seg_id}}', 'seg_overlay_del_{{seg_id}}')">Cancel</button>
                         <form method="POST" action="/delete_segment">
+                          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                           <input type="hidden" name="supression" value="{{seg_id}}">
                           <input type="hidden" name="from_history" value="1">
                           <button class="btn-submit" style="background:#b71c1c;" type="submit">Delete</button>
@@ -264,6 +265,7 @@
           <div id="rename_{{act_id}}" class="modal">
             <h3>Rename Activity</h3>
             <form method="POST" action="/rename_activity">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
               <input type="hidden" name="id_analysis" value="{{act_id}}">
               <input class="rename-input" type="text" name="new_title" value="{{row[2]}}" placeholder="New name" required>
               <div class="modal-actions">
@@ -281,6 +283,7 @@
             <div class="modal-actions">
               <button class="btn-close" onclick="closeModal('delete_{{act_id}}', 'overlay_delete_{{act_id}}')">Cancel</button>
               <form method="POST" action="/delete_file">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                 <input type="hidden" name="supression" value="{{act_id}}">
                 <button class="btn-delete-icon" type="submit"><img src="/static/bin.png" alt="Delete"></button>
               </form>

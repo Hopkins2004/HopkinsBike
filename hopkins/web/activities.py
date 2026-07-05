@@ -7,8 +7,8 @@ the session user's rows, so one user can never read or mutate another user's dat
 import json
 import os
 
-from flask import (Blueprint, current_app, redirect, render_template, request,
-                   session, url_for)
+from flask import (Blueprint, current_app, flash, redirect, render_template,
+                   request, session, url_for)
 
 from ..db import get_db
 from ..physics.cda import rideCDA
@@ -33,6 +33,11 @@ def _activity_path(user, id_act):
     return os.path.join(current_app.config['UPLOAD_FOLDER'], 'Activite' + str(user) + '_' + str(id_act) + '.fit')
 
 
+def _route_path(user, id_route):
+    """Claude__route_path: on-disk path of a stored GPX route (same layout as routes_gpx)."""
+    return os.path.join(current_app.config['UPLOAD_FOLDER'], 'Route' + str(user) + '_' + str(id_route) + '.gpx')
+
+
 @bp.route('/history')
 def f_history():
     """Claude_f_history: fetch activities and their saved segments for the current user"""
@@ -52,60 +57,64 @@ def f_history():
 
 @bp.route('/upload', methods=['POST'])
 def f_upload():
-    """Claude_f_upload: store an uploaded FIT (activity) or GPX (route) and route onward."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id_user FROM users WHERE email = ?", (session['username'],))
-        iduser = cursor.fetchall()[0][0]
+    """Claude_f_upload: store an uploaded FIT (activity) or GPX (route) and route onward.
+    Validates the file first; a parse failure rolls back the DB row and removes the file."""
+    file = request.files.get('file')
+    if file is None or not file.filename or '.' not in file.filename:
+        flash('Please choose a .fit or .gpx file to upload.', 'error')
+        return redirect(url_for('activities.f_go_to_upload'))
+    file_extension = file.filename.rsplit('.', 1)[1].lower()
+    if file_extension not in ('fit', 'gpx'):
+        flash('Unsupported file type: only .fit activities and .gpx routes are accepted.', 'error')
+        return redirect(url_for('activities.f_go_to_upload'))
 
-        file = request.files['file']
-        file_extension = file.filename.rsplit('.', 1)[1].lower()
+    iduser = current_user_id()
 
-        if file_extension == 'fit':
-            cursor.execute("INSERT INTO files (id_user) VALUES (?)", (iduser,))
-            conn.commit()
-            cursor.execute('SELECT id_analysis FROM files WHERE id_user = ? ORDER BY id_analysis DESC', (iduser,))
-            idactivite = cursor.fetchall()[0][0]
+    if file_extension == 'fit':
+        filename = None
+        try:
+            # A parse failure raises out of get_db(), which rolls the INSERT back.
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO files (id_user) VALUES (?)", (iduser,))
+                idactivite = cursor.lastrowid
+                filename = _activity_path(iduser, idactivite)
+                file.save(filename)
+                points, lapstamps = extract_data(filename)
+                length = len(points)
+                coords = [[p.latitude, p.longitude] for p in points]
+                date = points[0].timestamp.strftime('%d/%m/%Y')
+                avg_power = round(sum(p.power for p in points) / length, 3)
+                distance = round(points[-1].distance / 1000, 3)
+                cursor.execute('UPDATE files SET (length, day, title, distance, avg_pwr) = (?,?,?,?,?) WHERE id_analysis = ?',
+                               (length, date, 'New Activity', distance, avg_power, idactivite))
+        except Exception:
+            if filename and os.path.exists(filename):
+                os.remove(filename)
+            flash("Couldn't read that FIT file — it may be corrupt or contain no GPS records.", 'error')
+            return redirect(url_for('activities.f_go_to_upload'))
+        return render_template('visualise.html', parameters=[iduser, idactivite], data=coords, start=0, end=length - 1, results=[])
 
-            filename = os.path.join(current_app.config['UPLOAD_FOLDER'], 'Activite' + str(iduser) + '_' + str(idactivite) + '.' + file_extension)
-            file.save(filename)
-            points, lapstamps = extract_data(filename)
-            length = len(points)
-            coords = []
-            power = []
-            date = points[0].timestamp.strftime('%d/%m/%Y')
-            for point in points:
-                coords.append([point.latitude, point.longitude])
-                power.append(point.power)
-            avg_power = 0
-            for powe in power:
-                avg_power += powe
-            avg_power /= length
-            distance = points[len(points) - 1].distance / 1000
-            distance = round(distance, 3)
-            avg_power = round(avg_power, 3)
-            cursor.execute('UPDATE files SET (length, day, title, distance, avg_pwr) = (?,?,?,?,?) WHERE id_analysis = ?', (length, date, 'New Activity', distance, avg_power, idactivite))
-            conn.commit()
-            parameters = [iduser, idactivite]
-            print(f'Parsed activity {idactivite}: {len(coords)} points')
-            return render_template('visualise.html', parameters=parameters, data=coords, power=power, start=0, end=len(power) - 1, results=[])
-
-        elif file_extension == 'gpx':
-            original_name = request.files['file'].filename.rsplit('.', 1)[0]
-            cursor.execute("INSERT INTO gpx (id_user, title) VALUES (?, ?)", (iduser, original_name))
-            conn.commit()
-            cursor.execute('SELECT id_route FROM gpx WHERE id_user = ? ORDER BY id_route DESC', (iduser,))
-            idroute = cursor.fetchall()[0][0]
-
-            filename = os.path.join(current_app.config['UPLOAD_FOLDER'], 'Route' + str(iduser) + '_' + str(idroute) + '.' + file_extension)
-            file.save(filename)
-
-            raw_pts = gpx_raw_points(filename)
-            profile = gpx_points(filename)
-            total_dist = round(profile[-1][0] / 1000, 3) if profile else 0
-            cursor.execute('UPDATE gpx SET length = ?, distance = ? WHERE id_route = ?', (len(raw_pts), total_dist, idroute))
-            conn.commit()
-            return redirect('/view_route?q=' + encode_q(0, len(raw_pts), str(iduser) + ',' + str(idroute)))
+    else:  # gpx
+        filename = None
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                original_name = file.filename.rsplit('.', 1)[0]
+                cursor.execute("INSERT INTO gpx (id_user, title) VALUES (?, ?)", (iduser, original_name))
+                idroute = cursor.lastrowid
+                filename = _route_path(iduser, idroute)
+                file.save(filename)
+                raw_pts = gpx_raw_points(filename)
+                profile = gpx_points(filename)
+                total_dist = round(profile[-1][0] / 1000, 3) if profile else 0
+                cursor.execute('UPDATE gpx SET length = ?, distance = ? WHERE id_route = ?', (len(raw_pts), total_dist, idroute))
+        except Exception:
+            if filename and os.path.exists(filename):
+                os.remove(filename)
+            flash("Couldn't read that GPX file — it may be corrupt or missing elevation data.", 'error')
+            return redirect(url_for('activities.f_go_to_upload'))
+        return redirect('/view_route?q=' + encode_q(0, len(raw_pts), str(iduser) + ',' + str(idroute)))
 
 
 @bp.route('/visualise')
@@ -120,24 +129,12 @@ def f_visualise():
         if not user_owns_activity(conn, user, id_act):
             return redirect('/history')
     points, lapstamps = extract_data(_activity_path(user, id_act))
-    coords = []
-    power = []
-    altitude = []
-    i = 0
-    for point in points:
-        if i % 1 == 0:
-            coords.append([point.latitude, point.longitude])
-            power.append(point.power)
-            altitude.append(point.altitude / 2)
-        i += 1
-    points = points[start:end]
-    points = aggregate_segments(make_segments(points), 3)
+    coords = [[p.latitude, p.longitude] for p in points]
 
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id_segments, title, cda, comment FROM segments WHERE id_analysis = ?", (id_act,))
         results = cursor.fetchall()
-    print(f'Activity {id_act}: {len(results)} saved segments')
 
     parameters = [user, id_act]
 
@@ -223,8 +220,10 @@ def f_calculate():
         alt += s.altitude
         profile.append((cum_dist, alt))
 
-    # CdA: large cutoff for few grade-homogeneous sections, hard-capped at 5
-    section_borders = compute_section_borders(profile, 6, 5)
+    # Split into grade-homogeneous sections purely by the elevation-diff cutoff
+    # (ELEV_FLOOR_M inside peucker_douglas) with no hard section cap, so the count matches
+    # the overlay drawn in /view_segment (which also uses cutoff 21, no cap).
+    section_borders = compute_section_borders(profile, 21)
 
     # Compute CdA per homogeneous section
     sections = []
@@ -379,7 +378,7 @@ def f_view_segment():
         param_vals=param_vals)
 
 
-@bp.route('/delete_segment', methods=['GET', 'POST'])
+@bp.route('/delete_segment', methods=['POST'])
 def f_delete_segment():
     """Claude_f_delete_segment: delete a segment and redirect to history or visualise"""
     seg = request.form['supression']
@@ -405,16 +404,20 @@ def f_delete_segment():
 
 @bp.route('/edit_segment', methods=['POST'])
 def f_edit_segment():
-    """Claude_f_edit_segment: update segment title and comment from history tab"""
+    """Claude_f_edit_segment: update a segment's title and comment only (no CdA recompute).
+    Returns to the segment view when edited there, otherwise back to history."""
     seg_id = request.form['id_segments']
     new_title = request.form['title']
     new_comment = request.form['comment']
+    return_to = request.form.get('return_to', 'history')
     uid = current_user_id()
     with get_db() as conn:
         if segment_owner_id(conn, seg_id) != uid:
             return redirect('/history')
         cursor = conn.cursor()
         cursor.execute('UPDATE segments SET title = ?, comment = ? WHERE id_segments = ?', (new_title, new_comment, seg_id))
+    if return_to == 'view':
+        return redirect('/view_segment?q=' + encode_q(0, 0, str(uid) + ',' + str(seg_id)))
     return redirect('/history')
 
 
@@ -451,7 +454,8 @@ def f_update_segment():
         alt += s.altitude
         profile.append((cum_dist, alt))
 
-    section_borders = compute_section_borders(profile, 6, 5)
+    # No hard section cap: match /calculate and the /view_segment overlay (cutoff 21).
+    section_borders = compute_section_borders(profile, 21)
 
     sections = []
     for i in range(len(section_borders) - 1):
@@ -511,16 +515,20 @@ def f_rename_activity():
     return redirect('/history')
 
 
-@bp.route('/delete_file', methods=['GET', 'POST'])
+@bp.route('/delete_file', methods=['POST'])
 def f_delete_file():
-    """Claude_f_delete_file: delete an activity record owned by the current user."""
+    """Claude_f_delete_file: delete an activity, its segments, and the stored FIT file."""
     file = request.form['supression']
     uid = current_user_id()
     with get_db() as conn:
         if not user_owns_activity(conn, uid, file):
             return redirect('/history')
         cursor = conn.cursor()
+        cursor.execute('DELETE FROM segments WHERE id_analysis = ?', (file,))
         cursor.execute('DELETE FROM files WHERE id_analysis = ?', (file,))
+    fit_path = _activity_path(uid, file)
+    if os.path.exists(fit_path):
+        os.remove(fit_path)
     return redirect('/history')
 
 

@@ -4,29 +4,13 @@ Run against an isolated temp DB so the real data/ is untouched. Verifies:
   - anonymous requests to data routes redirect to /login (not 500);
   - a logged-in user cannot reach another user's route/activity via a crafted q token.
 """
-import os
-
-import pytest
-
-from hopkins import create_app
-from hopkins.config import Config
 from hopkins.db import get_db
 from hopkins.web.util import encode_q
 
 
-@pytest.fixture
-def app(tmp_path):
-    class C(Config):
-        DB_PATH = str(tmp_path / "t.db")
-        UPLOAD_FOLDER = str(tmp_path / "up")
-        SECRET_KEY = "test"
-    os.makedirs(C.UPLOAD_FOLDER, exist_ok=True)
-    return create_app(C)
-
-
 def _register_and_id(app, client, email):
     """Claude__register_and_id: register a user and return their id_user."""
-    client.post("/register", data={"email": email, "password": "pw"})
+    client.post("/register", data={"email": email, "password": "password123"})
     with app.app_context():
         with get_db() as conn:
             cur = conn.cursor()
@@ -34,16 +18,14 @@ def _register_and_id(app, client, email):
             return cur.fetchone()[0]
 
 
-def test_anonymous_redirects_to_login(app):
-    client = app.test_client()
+def test_anonymous_redirects_to_login(client):
     for path in ["/history", "/routes", "/upload"]:
         r = client.get(path)
         assert r.status_code == 302
         assert r.headers["Location"].endswith("/login")
 
 
-def test_cross_user_route_blocked(app):
-    client = app.test_client()
+def test_cross_user_route_blocked(app, client):
     a_id = _register_and_id(app, client, "a@x.com")
     b_id = _register_and_id(app, client, "b@x.com")
 
@@ -55,15 +37,14 @@ def test_cross_user_route_blocked(app):
             rid = conn.execute("SELECT id_route FROM gpx WHERE id_user = ?", (b_id,)).fetchone()[0]
 
     # A logs in and forges a q token pointing at B's route
-    client.post("/login", data={"email": "a@x.com", "password": "pw"})
+    client.post("/login", data={"email": "a@x.com", "password": "password123"})
     forged = encode_q(0, 0, f"{b_id},{rid}")
     r = client.get("/view_route?q=" + forged)
     assert r.status_code == 302
     assert r.headers["Location"].endswith("/routes")  # blocked, not served
 
 
-def test_cross_user_segment_delete_blocked(app):
-    client = app.test_client()
+def test_cross_user_segment_delete_blocked(app, client):
     a_id = _register_and_id(app, client, "a@x.com")
     b_id = _register_and_id(app, client, "b@x.com")
 
@@ -77,7 +58,7 @@ def test_cross_user_segment_delete_blocked(app):
             conn.commit()
             sid = conn.execute("SELECT id_segments FROM segments WHERE id_analysis = ?", (fid,)).fetchone()[0]
 
-    client.post("/login", data={"email": "a@x.com", "password": "pw"})
+    client.post("/login", data={"email": "a@x.com", "password": "password123"})
     r = client.post("/delete_segment", data={"supression": str(sid)})
     assert r.status_code == 302
     assert r.headers["Location"].endswith("/history")  # blocked

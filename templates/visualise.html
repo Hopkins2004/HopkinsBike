@@ -314,7 +314,7 @@
           title: 'Point',
       });
     let markers = [marker];
-    var data = {{data}}
+    var data = {{data|tojson}}
     var flightPlanCoordinates = []
     data.forEach(function(pair) {
         var latLng = {lat : pair[0], lng : pair[1]};
@@ -325,7 +325,7 @@
     var lat = 45;
     var lng = 0;
     function center(i,j){
-        var data = {{data}};
+        var data = {{data|tojson}};
         const appear = data.slice(i,j)
         var lat_min= 100;
         var lng_min = 100;
@@ -381,7 +381,7 @@
     }
 
     function initMap() {
-    draw({{start}},{{end}})
+    draw({{start|tojson}},{{end|tojson}})
   }
   function update(i,j){
     draw(i,j)
@@ -399,9 +399,9 @@
     return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   }
   function new_segment() {
-    var parameters = {{parameters}};
-    var start = {{start}};
-    var end = {{end}};
+    var parameters = {{parameters|tojson}};
+    var start = {{start|tojson}};
+    var end = {{end|tojson}};
     window.location.href = "/new_segment?q=" + encodeQ(start, end, parameters);
   }
   </script>
